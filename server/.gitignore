@@ -9,6 +9,5 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+#key
+tan.pem
