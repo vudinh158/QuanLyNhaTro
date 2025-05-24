@@ -1,0 +1,22 @@
+{
+  "development": {
+    "username": "admin",
+    "password": "quanlynhatro",
+    "database": "QuanLyNhaTro",
+    "host": "127.0.0.1",
+    "port": 3307,
+    "dialect": "mysql"
+  },
+  "test": {
+    "dialect": "sqlite",
+    "storage": ":memory:",
+    "logging": false
+  },
+  "production": {
+    "username": "root",
+    "password": null,
+    "database": "database_production",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  }
+}
