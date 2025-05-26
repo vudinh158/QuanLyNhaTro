@@ -1,35 +1,68 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
+import type React from "react"; // Không cần thiết với Next.js mới
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState, FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
+import { loginUser } from '@/services/authService';
+import type { UserLoginData } from '@/types/auth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+  const [tenDangNhapOrEmail, setTenDangNhapOrEmail] = useState("");
+  const [matKhau, setMatKhau] = useState("");
+  const { login: contextLogin } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-    // Giả lập đăng nhập thành công
-    setTimeout(() => {
-      setIsLoading(false)
+    const credentials: UserLoginData = {
+      tenDangNhapOrEmail,
+      matKhau,
+    };
+
+    try {
+      const response = await loginUser(credentials);
       toast({
         title: "Đăng nhập thành công",
-        description: "Chào mừng bạn quay trở lại!",
-      })
-      router.push("/dashboard")
-    }, 1500)
-  }
+        description: response.message || "Chào mừng bạn quay trở lại!",
+      });
+
+      if (response.token && response.data?.user) {
+        contextLogin(response.data.user, response.token);
+      } else {
+         toast({
+            title: "Đăng nhập thất bại",
+            description: response.message || "Không nhận được thông tin xác thực từ server.",
+            variant: "destructive",
+          });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Đăng nhập thất bại",
+        description: error.message || "Tên đăng nhập, email hoặc mật khẩu không đúng.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
@@ -41,17 +74,31 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Tên đăng nhập hoặc Email</Label>
-              <Input id="username" placeholder="Nhập tên đăng nhập hoặc email" required />
+              <Label htmlFor="tenDangNhapOrEmail">Tên đăng nhập hoặc Email *</Label>
+              <Input
+                id="tenDangNhapOrEmail"
+                placeholder="Nhập tên đăng nhập hoặc email"
+                required
+                value={tenDangNhapOrEmail}
+                onChange={(e) => setTenDangNhapOrEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Mật khẩu</Label>
-                <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+                <Label htmlFor="password">Mật khẩu *</Label>
+                {/* <Link href="/auth/forgot-password" // Đảm bảo route này tồn tại nếu bạn có chức năng quên mật khẩu
+                  className="text-xs text-primary hover:underline">
                   Quên mật khẩu?
-                </Link>
+                </Link> */}
               </div>
-              <Input id="password" type="password" placeholder="Nhập mật khẩu" required />
+              <Input
+                id="password"
+                type="password"
+                placeholder="Nhập mật khẩu"
+                required
+                value={matKhau}
+                onChange={(e) => setMatKhau(e.target.value)}
+              />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
@@ -68,5 +115,5 @@ export default function LoginPage() {
         </form>
       </Card>
     </div>
-  )
+  );
 }
