@@ -6,25 +6,28 @@ const bodyParser = require("body-parser");
 const path = require("path");
 
 const authRoutes = require("./routes/auth");
-// const taiKhoanRoutes = require("./routes/taiKhoanRoutes");
-// const roomRoutes = require("./routes/rooms");
-// const roomTypeRoutes = require("./routes/roomType");
-// const rentalHousesRoutes = require("./routes/rentalHouses");
-// const landlordsRoutes = require("./routes/landlords");
-// const tenantsRoutes = require("./routes/tenants");
-// const contractsRoutes = require("./routes/contracts");
-// const notificationsRoutes = require("./routes/notifications");
-// const serviceRoutes = require("./routes/service");
-// const roomServicesRoutes = require("./routes/roomServices");
-// const dienNuocRoutes = require("./routes/diennuoc");
-// const paymentRoutes = require("./routes/payment");
-// const paymentMethodRoutes = require("./routes/paymentMethod");
-// const invoiceRoutes = require("./routes/invoice");
-// const invoiceDetailRoutes = require("./routes/invoiceDetail");
-// const dashboardRoutes = require("./routes/dashBoard");
+const chiTietHoaDonRoutes = require("./routes/chiTietHoaDon");
+const chiTietThanhToanRoutes = require("./routes/chiTietThanhToan");
+const hoaDonRoutes = require("./routes/hoaDon");
+const dichVuRoutes = require("./routes/dichVu");
+const dienNuocRoutes = require("./routes/dienNuoc");
+const lichSuGiaDichVuRoutes = require("./routes/lichSuGiaDichVu");
+const lichSuGiaDienNuocRoutes = require("./routes/lichSuGiaDienNuoc");
+const phuongThucThanhToanRoutes = require("./routes/phuongThucThanhToan");
+const suDungDichVuRoutes = require("./routes/suDungDichVu");
 
 const db = require("./models");
-const { Invoice, InvoiceDetail, PaymentDetail, Service, ElectricWater } = db;
+const {
+  Invoice,
+  InvoiceDetail,
+  PaymentDetail,
+  Service,
+  ElectricWater,
+  ServicePriceHistory,
+  ElectricWaterPriceHistory,
+  PaymentMethod,
+  ServiceUsage,
+} = db;
 
 const app = express();
 const isTest = process.env.NODE_ENV === "test";
@@ -33,24 +36,17 @@ const isTest = process.env.NODE_ENV === "test";
 app.use(cors());
 app.use(bodyParser.json());
 
-// // Đăng ký các route
+// Đăng ký các route
 app.use("/api/auth", authRoutes);
-// app.use("/api/tai-khoan", taiKhoanRoutes);
-// app.use("/api/rooms", roomRoutes);
-// app.use("/api/room-type", roomTypeRoutes);
-// app.use("/api/houses", rentalHousesRoutes);
-// app.use("/api/landlords", landlordsRoutes);
-// app.use("/api/tenants", tenantsRoutes);
-// app.use("/api/contracts", contractsRoutes);
-// app.use("/api/notifications", notificationsRoutes);
-// app.use("/api/service", serviceRoutes);
-// app.use("/api/room-services", roomServicesRoutes);
-// app.use("/api/diennuoc", dienNuocRoutes);
-// app.use("/api/payment", paymentRoutes);
-// app.use("/api/payment-method", paymentMethodRoutes);
-// app.use("/api/invoice", invoiceRoutes);
-// app.use("/api/invoice-detail", invoiceDetailRoutes);
-// app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/chi-tiet-hoa-don", chiTietHoaDonRoutes);
+app.use("/api/chi-tiet-thanh-toan", chiTietThanhToanRoutes);
+app.use("/api/hoa-don", hoaDonRoutes);
+app.use("/api/dich-vu", dichVuRoutes);
+app.use("/api/dien-nuoc", dienNuocRoutes);
+app.use("/api/lich-su-gia-dich-vu", lichSuGiaDichVuRoutes);
+app.use("/api/lich-su-gia-dien-nuoc", lichSuGiaDienNuocRoutes);
+app.use("/api/phuong-thuc-thanh-toan", phuongThucThanhToanRoutes);
+app.use("/api/su-dung-dich-vu", suDungDichVuRoutes);
 
 // Phục vụ static files cho client và uploads
 app.use(express.static(path.join(__dirname, "../client/build")));
@@ -61,27 +57,6 @@ app.get("*", (req, res) => {
 
 // Chỉ chạy scheduler, sync DB và start server khi không phải test
 if (!isTest) {
-//   // Scheduler hóa đơn
-//   require("./schedulers/invoiceScheduler");
-
-//   // Chỉ sync các bảng bạn phụ trách trước khi listen
-//   Promise.all([
-//     Invoice.sync(),
-//     InvoiceDetail.sync(),
-//     PaymentDetail.sync(),
-//     Service.sync(),
-//     ElectricWater.sync(),
-//   ])
-//     .then(() => {
-//       console.log("✅ Đã sync các bảng hóa đơn, dịch vụ, thanh toán...");
-//       app.listen(5000, () => {
-//         console.log("✅ Server đang chạy tại http://localhost:5000");
-//       });
-//     })
-//     .catch((err) => {
-//       console.error("❌ Lỗi khi sync bảng:", err);
-//     });
-
   // Kiểm tra kết nối đến RDS (MySQL)
   const connection = mysql.createConnection({
     host: process.env.DB_HOST || "127.0.0.1",
@@ -99,10 +74,28 @@ if (!isTest) {
     console.log("✅ Kết nối thành công đến RDS!");
     connection.end();
   });
-    
-  app.listen(5000, () => {
-    console.log("✅ Server đang chạy tại http://localhost:5000");
-  });
+
+  // Sync các bảng
+  Promise.all([
+    Invoice.sync(),
+    InvoiceDetail.sync(),
+    PaymentDetail.sync(),
+    Service.sync(),
+    ElectricWater.sync(),
+    ServicePriceHistory.sync(),
+    ElectricWaterPriceHistory.sync(),
+    PaymentMethod.sync(),
+    ServiceUsage.sync(),
+  ])
+    .then(() => {
+      console.log("✅ Đã sync các bảng hóa đơn, dịch vụ, thanh toán, giá, và sử dụng dịch vụ...");
+      app.listen(5000, () => {
+        console.log("✅ Server đang chạy tại http://localhost:5000");
+      });
+    })
+    .catch((err) => {
+      console.error("❌ Lỗi khi sync bảng:", err);
+    });
 }
 
 // Xuất app để test (nếu cần)
