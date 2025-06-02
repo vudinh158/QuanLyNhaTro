@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const KhachThue = sequelize.define('KhachThue', {
+  const Tenant = sequelize.define('Tenant', {
     MaKhachThue: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -11,10 +11,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       unique: true,
       allowNull: true,
-      references: {
-        model: 'TaiKhoan',
-        key: 'MaTK'
-      }
     },
     HoTen: {
       type: DataTypes.STRING(50),
@@ -61,17 +57,16 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false
   });
 
-  KhachThue.associate = function(models) {
-    KhachThue.belongsTo(models.TaiKhoan, {
+  Tenant.associate = function(models) {
+    Tenant.belongsTo(models.UserAccount, {
       foreignKey: 'MaTK',
-      as: 'taiKhoan',
+      as: 'userAccount',
       allowNull: true
     });
-    KhachThue.hasMany(models.NguoiOCung, {
+    Tenant.hasMany(models.Occupant, { // Một khách thuê có thể ở nhiều hợp đồng/phòng khác nhau (vai trò người ở cùng)
       foreignKey: 'MaKhachThue',
-      as: 'cacLanOCung' // Một khách thuê có thể ở nhiều hợp đồng khác nhau
+      as: 'occupancies'
     });
   };
-
-  return KhachThue;
+  return Tenant;
 };

@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const ChuTro = sequelize.define('ChuTro', {
+  const Landlord = sequelize.define('Landlord', {
     MaChuTro: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -11,10 +11,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       unique: true,
-      references: {
-        model: 'TaiKhoan',
-        key: 'MaTK'
-      }
     },
     HoTen: {
       type: DataTypes.STRING(50),
@@ -30,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
       unique: true,
     },
     NgaySinh: {
-      type: DataTypes.DATEONLY, 
+      type: DataTypes.DATEONLY,
     },
     GioiTinh: {
       type: DataTypes.ENUM('Nam', 'Nữ', 'Khác'),
@@ -47,28 +43,27 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false
   });
 
-  ChuTro.associate = function(models) {
-    ChuTro.belongsTo(models.TaiKhoan, {
+  Landlord.associate = function(models) {
+    Landlord.belongsTo(models.UserAccount, {
       foreignKey: 'MaTK',
-      as: 'taiKhoan'
+      as: 'userAccount'
     });
-    ChuTro.hasMany(models.NhaTro, {
+    Landlord.hasMany(models.Property, { 
       foreignKey: 'MaChuTro',
-      as: 'nhaTros'
+      as: 'properties'
     });
-    ChuTro.hasMany(models.LichSuGiaDienNuoc, { // Chủ trọ cập nhật giá điện nước
+    Landlord.hasMany(models.ElectricWaterPriceHistory, {
         foreignKey: 'MaNguoiCapNhat',
-        as: 'lichSuCapNhatGiaDienNuoc'
+        as: 'electricWaterPriceUpdates'
     });
-    ChuTro.hasMany(models.LichSuGiaDichVu, { // Chủ trọ cập nhật giá dịch vụ
+    Landlord.hasMany(models.ServicePriceHistory, {
         foreignKey: 'MaNguoiCapNhat',
-        as: 'lichSuCapNhatGiaDichVu'
+        as: 'servicePriceUpdates'
     });
-    ChuTro.hasMany(models.ChiTietThanhToan, { // Chủ trọ là người nhận tiền
+    Landlord.hasMany(models.PaymentDetail, {
         foreignKey: 'MaNguoiNhanTK',
-        as: 'thanhToansDaNhan'
+        as: 'receivedPayments'
     });
   };
-
-  return ChuTro;
+  return Landlord;
 };

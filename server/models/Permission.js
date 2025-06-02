@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const Quyen = sequelize.define('Quyen', {
+  const Permission = sequelize.define('Permission', {
     MaQuyen: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -20,14 +20,13 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false
   });
 
-  Quyen.associate = function(models) {
-    Quyen.belongsToMany(models.VaiTro, {
-      through: models.VaiTro_Quyen, // Sử dụng model trung gian
+  Permission.associate = function(models) {
+    Permission.belongsToMany(models.Role, {
+      through: models.RolePermission,
       foreignKey: 'MaQuyen',
       otherKey: 'MaVaiTro',
-      as: 'vaiTros'
+      as: 'roles'
     });
   };
-
-  return Quyen;
+  return Permission;
 };

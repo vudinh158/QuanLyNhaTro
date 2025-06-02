@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const LoaiPhong = sequelize.define('LoaiPhong', {
+  const RoomType = sequelize.define('RoomType', {
     MaLoaiPhong: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -32,12 +32,11 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false
   });
 
-  LoaiPhong.associate = function(models) {
-    LoaiPhong.hasMany(models.Phong, {
+  RoomType.associate = function(models) {
+    RoomType.hasMany(models.Room, {
       foreignKey: 'MaLoaiPhong',
-      as: 'phongs'
+      as: 'rooms'
     });
   };
-
-  return LoaiPhong;
+  return RoomType;
 };

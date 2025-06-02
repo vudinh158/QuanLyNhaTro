@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const NguoiOCung = sequelize.define('NguoiOCung', {
+  const Occupant = sequelize.define('Occupant', {
     MaNOC: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -10,18 +10,10 @@ module.exports = (sequelize, DataTypes) => {
     MaHopDong: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'HopDong',
-        key: 'MaHopDong'
-      }
     },
     MaKhachThue: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'KhachThue',
-        key: 'MaKhachThue'
-      }
     },
     LaNguoiDaiDien: {
       type: DataTypes.BOOLEAN,
@@ -50,16 +42,15 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
-  NguoiOCung.associate = function(models) {
-    NguoiOCung.belongsTo(models.HopDong, {
+  Occupant.associate = function(models) {
+    Occupant.belongsTo(models.Contract, {
       foreignKey: 'MaHopDong',
-      as: 'hopDong'
+      as: 'contract'
     });
-    NguoiOCung.belongsTo(models.KhachThue, {
+    Occupant.belongsTo(models.Tenant, {
       foreignKey: 'MaKhachThue',
-      as: 'khachThue'
+      as: 'tenant'
     });
   };
-
-  return NguoiOCung;
+  return Occupant;
 };

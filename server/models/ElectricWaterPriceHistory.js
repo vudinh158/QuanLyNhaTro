@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const LichSuGiaDienNuoc = sequelize.define('LichSuGiaDienNuoc', {
+  const ElectricWaterPriceHistory = sequelize.define('ElectricWaterPriceHistory', {
     MaLichSuDN: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -10,10 +10,6 @@ module.exports = (sequelize, DataTypes) => {
     MaNhaTro: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'NhaTro',
-        key: 'MaNhaTro'
-      }
     },
     Loai: {
       type: DataTypes.ENUM('Điện', 'Nước'),
@@ -29,11 +25,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     MaNguoiCapNhat: {
       type: DataTypes.INTEGER,
-      allowNull: true, // SQL cho phép NULL
-      references: {
-        model: 'ChuTro',
-        key: 'MaChuTro'
-      }
+      allowNull: true,
     },
     ThoiGianCapNhat: {
       type: DataTypes.DATE,
@@ -42,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     tableName: 'LichSuGiaDienNuoc',
-    timestamps: false, // Vì đã có ThoiGianCapNhat
+    timestamps: false,
     indexes: [
       {
         unique: true,
@@ -52,16 +44,15 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
-  LichSuGiaDienNuoc.associate = function(models) {
-    LichSuGiaDienNuoc.belongsTo(models.NhaTro, {
+  ElectricWaterPriceHistory.associate = function(models) {
+    ElectricWaterPriceHistory.belongsTo(models.Property, {
       foreignKey: 'MaNhaTro',
-      as: 'nhaTro'
+      as: 'property'
     });
-    LichSuGiaDienNuoc.belongsTo(models.ChuTro, {
+    ElectricWaterPriceHistory.belongsTo(models.Landlord, {
       foreignKey: 'MaNguoiCapNhat',
-      as: 'nguoiCapNhat'
+      as: 'updatedBy'
     });
   };
-
-  return LichSuGiaDienNuoc;
+  return ElectricWaterPriceHistory;
 };

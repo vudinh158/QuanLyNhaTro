@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const ThongBao = sequelize.define('ThongBao', {
+  const Notification = sequelize.define('Notification', {
     MaThongBao: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -11,31 +11,23 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('Chủ trọ', 'Khách thuê'),
       allowNull: false,
     },
-    MaNguoiGui: { // ID của ChuTro hoặc KhachThue
+    MaNguoiGui: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
     MaNhaTroNhan: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: {
-        model: 'NhaTro',
-        key: 'MaNhaTro'
-      }
     },
     MaPhongNhan: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: {
-        model: 'Phong',
-        key: 'MaPhong'
-      }
     },
     LoaiNguoiNhan: {
       type: DataTypes.ENUM('Chủ trọ', 'Khách thuê', 'Tất cả Khách thuê', 'Tất cả Chủ trọ'),
       allowNull: false,
     },
-    MaNguoiNhan: { // ID của ChuTro hoặc KhachThue (nếu gửi cá nhân)
+    MaNguoiNhan: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
@@ -54,28 +46,24 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     tableName: 'ThongBao',
-    timestamps: false // Vì có ThoiGianGui
+    timestamps: false
   });
 
-  ThongBao.associate = function(models) {
-    ThongBao.belongsTo(models.NhaTro, {
+  Notification.associate = function(models) {
+    Notification.belongsTo(models.Property, {
       foreignKey: 'MaNhaTroNhan',
-      as: 'nhaTroNhan',
+      as: 'targetProperty',
       allowNull: true
     });
-    ThongBao.belongsTo(models.Phong, {
+    Notification.belongsTo(models.Room, {
       foreignKey: 'MaPhongNhan',
-      as: 'phongNhan',
+      as: 'targetRoom',
       allowNull: true
     });
-    // Không thể tạo FK trực tiếp cho MaNguoiGui, MaNguoiNhan vì tính đa hình.
-    // Sẽ cần xử lý logic này ở service layer để lấy thông tin người gửi/nhận.
-
-    ThongBao.hasMany(models.TrangThaiDocThongBao, {
+    Notification.hasMany(models.NotificationReadStatus, {
         foreignKey: 'MaThongBao',
-        as: 'trangThaiDocs'
+        as: 'readStatuses'
     });
   };
-
-  return ThongBao;
+  return Notification;
 };

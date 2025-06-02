@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const VaiTro = sequelize.define('VaiTro', {
+  const Role = sequelize.define('Role', {
     MaVaiTro: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -14,21 +14,20 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     tableName: 'VaiTro',
-    timestamps: false // Không có cột timestamp trong bảng này
+    timestamps: false
   });
 
-  VaiTro.associate = function(models) {
-    VaiTro.hasMany(models.TaiKhoan, {
+  Role.associate = function(models) {
+    Role.hasMany(models.UserAccount, {
       foreignKey: 'MaVaiTro',
-      as: 'taiKhoans'
+      as: 'userAccounts'
     });
-    VaiTro.belongsToMany(models.Quyen, {
-      through: models.VaiTro_Quyen, // Sử dụng model trung gian đã định nghĩa
+    Role.belongsToMany(models.Permission, {
+      through: models.RolePermission, 
       foreignKey: 'MaVaiTro',
       otherKey: 'MaQuyen',
-      as: 'quyens'
+      as: 'permissions'
     });
   };
-
-  return VaiTro;
+  return Role;
 };

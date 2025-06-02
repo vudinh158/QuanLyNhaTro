@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const SuDungDichVu = sequelize.define('SuDungDichVu', {
+  const ServiceUsage = sequelize.define('ServiceUsage', {
     MaSuDungDV: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -10,18 +10,10 @@ module.exports = (sequelize, DataTypes) => {
     MaPhong: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'Phong',
-        key: 'MaPhong'
-      }
     },
     MaDV: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'DichVu',
-        key: 'MaDV'
-      }
     },
     NgaySuDung: {
       type: DataTypes.DATEONLY,
@@ -43,10 +35,6 @@ module.exports = (sequelize, DataTypes) => {
     MaHoaDon: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: {
-        model: 'HoaDon',
-        key: 'MaHoaDon'
-      }
     },
     TrangThai: {
       type: DataTypes.ENUM('Mới ghi', 'Đã tính tiền', 'Đã hủy'),
@@ -61,24 +49,23 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
     indexes: [
         { fields: ['MaHoaDon'], name: 'idx_sudungdv_hoadon' },
-        { fields: ['MaPhong', 'MaDV', 'NgaySuDung'], name: 'idx_sudungdv_phong_dichvu_ngay' } // Thêm NgaySuDung vào index
+        { fields: ['MaPhong', 'MaDV', 'NgaySuDung'], name: 'idx_sudungdv_phong_dichvu_ngay' }
     ]
   });
 
-  SuDungDichVu.associate = function(models) {
-    SuDungDichVu.belongsTo(models.Phong, {
+  ServiceUsage.associate = function(models) {
+    ServiceUsage.belongsTo(models.Room, {
       foreignKey: 'MaPhong',
-      as: 'phong'
+      as: 'room'
     });
-    SuDungDichVu.belongsTo(models.DichVu, {
+    ServiceUsage.belongsTo(models.Service, {
       foreignKey: 'MaDV',
-      as: 'dichVu'
+      as: 'service'
     });
-    SuDungDichVu.belongsTo(models.HoaDon, {
+    ServiceUsage.belongsTo(models.Invoice, {
       foreignKey: 'MaHoaDon',
-      as: 'hoaDon'
+      as: 'invoice'
     });
   };
-
-  return SuDungDichVu;
+  return ServiceUsage;
 };

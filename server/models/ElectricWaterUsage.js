@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const DienNuoc = sequelize.define('DienNuoc', {
+  const ElectricWaterUsage = sequelize.define('ElectricWaterUsage', {
     MaDienNuoc: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -10,10 +10,6 @@ module.exports = (sequelize, DataTypes) => {
     MaPhong: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'Phong',
-        key: 'MaPhong'
-      }
     },
     Loai: {
       type: DataTypes.ENUM('Điện', 'Nước'),
@@ -46,10 +42,6 @@ module.exports = (sequelize, DataTypes) => {
     MaHoaDon: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: {
-        model: 'HoaDon',
-        key: 'MaHoaDon'
-      }
     },
     TrangThai: {
       type: DataTypes.ENUM('Mới ghi', 'Đã tính tiền', 'Đã hủy'),
@@ -64,24 +56,23 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
     indexes: [
       {
-        unique: true, // Sửa lại UNIQUE constraint theo SQL
-        fields: ['MaHoaDon', 'Loai', 'NgayGhi'], // Hoặc một tổ hợp khác phù hợp hơn logic của bạn
-        name: 'idx_unique_diennuoc_hoadon_loai_ngayghi' // Đổi tên index cho rõ ràng
+        unique: true,
+        fields: ['MaHoaDon', 'Loai', 'NgayGhi'], 
+        name: 'idx_unique_diennuoc_hoadon_loai_ngayghi'
       },
       { fields: ['MaPhong', 'Loai'], name: 'idx_diennuoc_phong_loai' }
     ]
   });
 
-  DienNuoc.associate = function(models) {
-    DienNuoc.belongsTo(models.Phong, {
+  ElectricWaterUsage.associate = function(models) {
+    ElectricWaterUsage.belongsTo(models.Room, {
       foreignKey: 'MaPhong',
-      as: 'phong'
+      as: 'room'
     });
-    DienNuoc.belongsTo(models.HoaDon, {
+    ElectricWaterUsage.belongsTo(models.Invoice, {
       foreignKey: 'MaHoaDon',
-      as: 'hoaDon'
+      as: 'invoice'
     });
   };
-
-  return DienNuoc;
+  return ElectricWaterUsage;
 };

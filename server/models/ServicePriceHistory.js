@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const LichSuGiaDichVu = sequelize.define('LichSuGiaDichVu', {
+  const ServicePriceHistory = sequelize.define('ServicePriceHistory', {
     MaLichSuDV: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -10,10 +10,6 @@ module.exports = (sequelize, DataTypes) => {
     MaDV: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'DichVu',
-        key: 'MaDV'
-      }
     },
     DonGiaMoi: {
       type: DataTypes.DECIMAL(12, 2),
@@ -26,10 +22,6 @@ module.exports = (sequelize, DataTypes) => {
     MaNguoiCapNhat: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: {
-        model: 'ChuTro',
-        key: 'MaChuTro'
-      }
     },
     ThoiGianCapNhat: {
       type: DataTypes.DATE,
@@ -48,16 +40,15 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
-  LichSuGiaDichVu.associate = function(models) {
-    LichSuGiaDichVu.belongsTo(models.DichVu, {
+  ServicePriceHistory.associate = function(models) {
+    ServicePriceHistory.belongsTo(models.Service, {
       foreignKey: 'MaDV',
-      as: 'dichVu'
+      as: 'service'
     });
-    LichSuGiaDichVu.belongsTo(models.ChuTro, {
+    ServicePriceHistory.belongsTo(models.Landlord, {
       foreignKey: 'MaNguoiCapNhat',
-      as: 'nguoiCapNhat'
+      as: 'updatedBy'
     });
   };
-
-  return LichSuGiaDichVu;
+  return ServicePriceHistory;
 };

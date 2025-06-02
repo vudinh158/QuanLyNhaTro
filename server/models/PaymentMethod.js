@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const PhuongThucThanhToan = sequelize.define('PhuongThucThanhToan', {
+  const PaymentMethod = sequelize.define('PaymentMethod', {
     MaPTTT: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -25,12 +25,11 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false
   });
 
-  PhuongThucThanhToan.associate = function(models) {
-    PhuongThucThanhToan.hasMany(models.ChiTietThanhToan, {
+  PaymentMethod.associate = function(models) {
+    PaymentMethod.hasMany(models.PaymentDetail, {
       foreignKey: 'MaPTTT',
-      as: 'chiTietThanhToans'
+      as: 'paymentDetails'
     });
   };
-
-  return PhuongThucThanhToan;
+  return PaymentMethod;
 };

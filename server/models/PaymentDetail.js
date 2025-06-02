@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const ChiTietThanhToan = sequelize.define('ChiTietThanhToan', {
+  const PaymentDetail = sequelize.define('PaymentDetail', {
     MaThanhToan: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -10,10 +10,6 @@ module.exports = (sequelize, DataTypes) => {
     MaHoaDon: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'HoaDon',
-        key: 'MaHoaDon'
-      }
     },
     SoTien: {
       type: DataTypes.DECIMAL(12, 2),
@@ -27,21 +23,13 @@ module.exports = (sequelize, DataTypes) => {
     MaPTTT: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'PhuongThucThanhToan',
-        key: 'MaPTTT'
-      }
     },
     MaGiaoDich: {
       type: DataTypes.STRING(100),
     },
-    MaNguoiNhanTK: { 
+    MaNguoiNhanTK: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: {
-        model: 'ChuTro',
-        key: 'MaChuTro'
-      }
     },
     GhiChu: {
       type: DataTypes.STRING(255),
@@ -54,20 +42,19 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
-  ChiTietThanhToan.associate = function(models) {
-    ChiTietThanhToan.belongsTo(models.HoaDon, {
+  PaymentDetail.associate = function(models) {
+    PaymentDetail.belongsTo(models.Invoice, {
       foreignKey: 'MaHoaDon',
-      as: 'hoaDon'
+      as: 'invoice'
     });
-    ChiTietThanhToan.belongsTo(models.PhuongThucThanhToan, {
+    PaymentDetail.belongsTo(models.PaymentMethod, {
       foreignKey: 'MaPTTT',
-      as: 'phuongThucThanhToan'
+      as: 'paymentMethod'
     });
-    ChiTietThanhToan.belongsTo(models.ChuTro, {
+    PaymentDetail.belongsTo(models.Landlord, {
       foreignKey: 'MaNguoiNhanTK',
-      as: 'nguoiNhan'
+      as: 'receiver' // Người nhận tiền là Chủ Trọ
     });
   };
-
-  return ChiTietThanhToan;
+  return PaymentDetail;
 };

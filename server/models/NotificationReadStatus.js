@@ -1,42 +1,36 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const TrangThaiDocThongBao = sequelize.define('TrangThaiDocThongBao', {
+  const NotificationReadStatus = sequelize.define('NotificationReadStatus', {
     MaThongBao: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       allowNull: false,
-      references: {
-        model: 'ThongBao',
-        key: 'MaThongBao'
-      }
     },
     LoaiNguoiDoc: {
       type: DataTypes.ENUM('Chủ trọ', 'Khách thuê'),
       primaryKey: true,
       allowNull: false,
     },
-    MaNguoiDoc: { // ID của ChuTro hoặc KhachThue
+    MaNguoiDoc: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       allowNull: false,
     },
     ThoiGianDoc: {
       type: DataTypes.DATE,
-      allowNull: true, // SQL cho phép NULL, mặc định là CURRENT_TIMESTAMP khi tạo
+      allowNull: true,
       defaultValue: DataTypes.NOW,
     }
   }, {
     tableName: 'TrangThaiDocThongBao',
-    timestamps: false // Vì có ThoiGianDoc
+    timestamps: false
   });
 
-  TrangThaiDocThongBao.associate = function(models) {
-    TrangThaiDocThongBao.belongsTo(models.ThongBao, {
+  NotificationReadStatus.associate = function(models) {
+    NotificationReadStatus.belongsTo(models.Notification, {
       foreignKey: 'MaThongBao',
-      as: 'thongBao'
+      as: 'notification'
     });
-    // Không thể tạo FK trực tiếp cho MaNguoiDoc.
   };
-
-  return TrangThaiDocThongBao;
+  return NotificationReadStatus;
 };

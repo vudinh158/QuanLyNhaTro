@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const Phong = sequelize.define('Phong', {
+  const Room = sequelize.define('Room', {
     MaPhong: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -10,18 +10,10 @@ module.exports = (sequelize, DataTypes) => {
     MaNhaTro: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'NhaTro',
-        key: 'MaNhaTro'
-      }
     },
     MaLoaiPhong: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'LoaiPhong',
-        key: 'MaLoaiPhong'
-      }
     },
     TenPhong: {
       type: DataTypes.STRING(50),
@@ -47,32 +39,31 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
-  Phong.associate = function(models) {
-    Phong.belongsTo(models.NhaTro, {
+  Room.associate = function(models) {
+    Room.belongsTo(models.Property, {
       foreignKey: 'MaNhaTro',
-      as: 'nhaTro'
+      as: 'property'
     });
-    Phong.belongsTo(models.LoaiPhong, {
+    Room.belongsTo(models.RoomType, {
       foreignKey: 'MaLoaiPhong',
-      as: 'loaiPhong'
+      as: 'roomType'
     });
-    Phong.hasMany(models.HopDong, {
+    Room.hasMany(models.Contract, {
       foreignKey: 'MaPhong',
-      as: 'hopDongs'
+      as: 'contracts'
     });
-    Phong.hasMany(models.DienNuoc, {
+    Room.hasMany(models.ElectricWaterUsage, {
       foreignKey: 'MaPhong',
-      as: 'dienNuocs'
+      as: 'electricWaterUsages'
     });
-    Phong.hasMany(models.SuDungDichVu, {
+    Room.hasMany(models.ServiceUsage, {
       foreignKey: 'MaPhong',
-      as: 'suDungDichVus'
+      as: 'serviceUsages'
     });
-    Phong.hasMany(models.ThongBao, { // Phòng có thể là đối tượng nhận thông báo
+    Room.hasMany(models.Notification, {
         foreignKey: 'MaPhongNhan',
-        as: 'thongBaosNhan'
+        as: 'receivedNotifications'
     });
   };
-
-  return Phong;
+  return Room;
 };

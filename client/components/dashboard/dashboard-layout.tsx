@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Xác định vai trò thực tế từ context, hoặc từ prop (nếu bạn vẫn muốn truyền)
   // Dòng này sẽ hoạt động đúng vì nó chỉ dựa vào user từ context
-    const effectiveUserRole = user?.vaiTro?.TenVaiTro === 'Chủ trọ' ? 'landlord' : user?.vaiTro?.TenVaiTro === 'Khách thuê' ? 'tenant' : undefined;
+    const effectiveUserRole = user?.role?.TenVaiTro === 'Chủ trọ' ? 'landlord' : user?.role?.TenVaiTro === 'Khách thuê' ? 'tenant' : undefined;
 
   // Bảo vệ route: Nếu đang loading hoặc không có user/token, chuyển hướng về login
   // Chỉ áp dụng cho các trang trong dashboard/tenant

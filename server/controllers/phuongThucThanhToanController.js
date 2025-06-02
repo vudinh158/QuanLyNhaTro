@@ -1,5 +1,5 @@
 const { PhuongThucThanhToan } = require('../models');
-const AppError = require('../utils/error');
+const AppError = require('../utils/AppError');
 
 exports.createPhuongThucThanhToan = async (req, res, next) => {
   try {

@@ -54,16 +54,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = (userData: User, authToken: string) => {
+    console.log("AuthContext: login called with userData:", userData); // DEBUG
+    console.log("AuthContext: authToken:", authToken); // DEBUG
     localStorage.setItem('authToken', authToken);
     setUser(userData);
     setToken(authToken);
-    // Chuyển hướng dựa trên vai trò sau khi login thành công
-    const userRole = userData.vaiTro?.TenVaiTro;
+    setIsLoading(false);
+  
+    const userRole = userData.role?.TenVaiTro;
+    console.log("AuthContext: userRole for redirection:", userRole); // DEBUG
     if (userRole === 'Chủ trọ') {
       router.push("/dashboard");
     } else if (userRole === 'Khách thuê') {
       router.push("/tenant/dashboard");
     } else {
+      console.warn("AuthContext: Unknown user role, redirecting to home."); // DEBUG
       router.push("/");
     }
   };
@@ -72,8 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('authToken');
     setUser(null);
     setToken(null);
-    // Chuyển hướng về trang đăng nhập hoặc trang chủ
-    // Kiểm tra để tránh chuyển hướng vô hạn nếu đang ở trang công khai
+
     if (pathname.startsWith('/dashboard') || pathname.startsWith('/tenant')) {
         router.push('/login');
     }

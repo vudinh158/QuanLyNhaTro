@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const HopDong = sequelize.define('HopDong', {
+  const Contract = sequelize.define('Contract', {
     MaHopDong: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -10,10 +10,6 @@ module.exports = (sequelize, DataTypes) => {
     MaPhong: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'Phong',
-        key: 'MaPhong'
-      }
     },
     NgayLap: {
       type: DataTypes.DATEONLY,
@@ -59,33 +55,32 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     tableName: 'HopDong',
-    timestamps: false, // Nếu không có cột createdAt/updatedAt trong SQL
+    timestamps: false,
     indexes: [
       { fields: ['MaPhong', 'NgayBatDau', 'NgayKetThuc'], name: 'idx_hopdong_phong_thoigian' },
       { fields: ['MaPhong', 'TrangThai'], name: 'idx_hopdong_phong_trangthai' }
     ]
   });
 
-  HopDong.associate = function(models) {
-    HopDong.belongsTo(models.Phong, {
+  Contract.associate = function(models) {
+    Contract.belongsTo(models.Room, {
       foreignKey: 'MaPhong',
-      as: 'phong'
+      as: 'room'
     });
-    HopDong.hasMany(models.NguoiOCung, {
+    Contract.hasMany(models.Occupant, {
       foreignKey: 'MaHopDong',
-      as: 'nguoiOCungs'
+      as: 'occupants'
     });
-    HopDong.hasMany(models.HoaDon, {
+    Contract.hasMany(models.Invoice, {
       foreignKey: 'MaHopDong',
-      as: 'hoaDons'
+      as: 'invoices'
     });
-    HopDong.belongsToMany(models.DichVu, {
-      through: models.HopDong_DichVuDangKy,
+    Contract.belongsToMany(models.Service, {
+      through: models.ContractRegisteredService,
       foreignKey: 'MaHopDong',
       otherKey: 'MaDV',
-      as: 'dichVusDangKy'
+      as: 'registeredServices'
     });
   };
-
-  return HopDong;
+  return Contract;
 };

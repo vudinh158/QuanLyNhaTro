@@ -1,119 +1,123 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const HoaDon = sequelize.define('HoaDon', {
-    MaHoaDon: {
+  const Invoice = sequelize.define('Invoice', { 
+    MaHoaDon: { 
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
       allowNull: false,
+      field: 'MaHoaDon' 
     },
     MaHopDong: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'HopDong',
-        key: 'MaHopDong'
-      }
+      field: 'MaHopDong' 
     },
     NgayLap: {
       type: DataTypes.DATEONLY,
       allowNull: false,
+      field: 'NgayLap'
     },
     KyThanhToan_TuNgay: {
       type: DataTypes.DATEONLY,
       allowNull: false,
+      field: 'KyThanhToan_TuNgay'
     },
     KyThanhToan_DenNgay: {
       type: DataTypes.DATEONLY,
       allowNull: false,
+      field: 'KyThanhToan_DenNgay'
     },
     TienPhong: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
+      field: 'TienPhong'
     },
     TongTienDien: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
       defaultValue: 0,
+      field: 'TongTienDien'
     },
     TongTienNuoc: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
       defaultValue: 0,
+      field: 'TongTienNuoc'
     },
     TongTienDichVu: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
       defaultValue: 0,
+      field: 'TongTienDichVu'
     },
     TongTienPhaiTra: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
+      field: 'TongTienPhaiTra'
     },
     DaThanhToan: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
       defaultValue: 0,
+      field: 'DaThanhToan'
     },
     ConLai: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
-      // This should be a calculated field, or updated via hooks/services
-      // get() {
-      //   return this.TongTienPhaiTra - this.DaThanhToan;
-      // }
+      field: 'ConLai'
     },
     TrangThaiThanhToan: {
       type: DataTypes.ENUM('Chưa thanh toán', 'Đã thanh toán một phần', 'Đã thanh toán đủ', 'Quá hạn'),
       allowNull: false,
       defaultValue: 'Chưa thanh toán',
+      field: 'TrangThaiThanhToan'
     },
     NgayHanThanhToan: {
       type: DataTypes.DATEONLY,
+      field: 'NgayHanThanhToan'
     },
     GhiChu: {
       type: DataTypes.TEXT,
+      field: 'GhiChu'
     }
   }, {
-    tableName: 'HoaDon',
-    timestamps: false, // Nếu không có cột createdAt/updatedAt
+    tableName: 'HoaDon', 
+    timestamps: false,
     indexes: [
       { unique: true, fields: ['MaHopDong', 'KyThanhToan_DenNgay'], name: 'idx_unique_hoadon_ky' },
       { fields: ['TrangThaiThanhToan'], name: 'idx_hoadon_trangthai' },
       { fields: ['NgayHanThanhToan'], name: 'idx_hoadon_hanthanhtoan' }
     ],
     hooks: {
-        beforeValidate: (hoaDon, options) => {
-            if (hoaDon.TongTienPhaiTra && typeof hoaDon.DaThanhToan !== 'undefined') {
-                 hoaDon.ConLai = parseFloat(hoaDon.TongTienPhaiTra) - parseFloat(hoaDon.DaThanhToan);
+        beforeValidate: (invoiceInstance, options) => { 
+            if (invoiceInstance.TongTienPhaiTra && typeof invoiceInstance.DaThanhToan !== 'undefined') {
+                 invoiceInstance.ConLai = parseFloat(invoiceInstance.TongTienPhaiTra) - parseFloat(invoiceInstance.DaThanhToan);
             }
         },
-        // Có thể thêm afterUpdate để cập nhật lại ConLai nếu DaThanhToan thay đổi
     }
   });
 
-  HoaDon.associate = function(models) {
-    HoaDon.belongsTo(models.HopDong, {
-      foreignKey: 'MaHopDong',
-      as: 'hopDong'
+  Invoice.associate = function(models) { 
+    Invoice.belongsTo(models.Contract, { 
+      foreignKey: 'MaHopDong', 
+      as: 'contract' 
     });
-    HoaDon.hasMany(models.DienNuoc, {
+    Invoice.hasMany(models.ElectricWaterUsage, {
       foreignKey: 'MaHoaDon',
-      as: 'dienNuocs'
+      as: 'electricWaterUsages'
     });
-    HoaDon.hasMany(models.SuDungDichVu, {
-      foreignKey: 'MaHoaDon',
-      as: 'suDungDichVus'
+    Invoice.hasMany(models.ServiceUsage, {
+      as: 'serviceUsages'
     });
-    HoaDon.hasMany(models.ChiTietHoaDon, {
-      foreignKey: 'MaHoaDon',
-      as: 'chiTietHoaDons'
+    Invoice.hasMany(models.InvoiceDetail, { 
+      as: 'details'
     });
-    HoaDon.hasMany(models.ChiTietThanhToan, {
+    Invoice.hasMany(models.PaymentDetail, { 
       foreignKey: 'MaHoaDon',
-      as: 'chiTietThanhToans'
+      as: 'paymentDetails'
     });
   };
 
-  return HoaDon;
+  return Invoice;
 };

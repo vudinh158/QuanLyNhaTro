@@ -38,30 +38,34 @@ export default function LoginPage() {
     };
 
     try {
-      const response = await loginUser(credentials);
-      toast({
-        title: "Đăng nhập thành công",
-        description: response.message || "Chào mừng bạn quay trở lại!",
-      });
-
-      if (response.token && response.data?.user) {
-        contextLogin(response.data.user, response.token);
-      } else {
-         toast({
-            title: "Đăng nhập thất bại",
-            description: response.message || "Không nhận được thông tin xác thực từ server.",
-            variant: "destructive",
-          });
+        const response = await loginUser(credentials);
+        console.log("LoginPage: API Response:", response); // DEBUG
+        toast({
+          title: "Đăng nhập thành công",
+          description: response.message || "Chào mừng bạn quay trở lại!",
+        });
+  
+        if (response.token && response.data?.user) {
+          console.log("LoginPage: Calling contextLogin with user:", response.data.user, "and token:", response.token); // DEBUG
+          contextLogin(response.data.user, response.token);
+        } else {
+           console.error("LoginPage: Missing token or user data in response", response); // DEBUG
+           toast({
+              title: "Đăng nhập thất bại",
+              description: response.message || "Không nhận được thông tin xác thực từ server.",
+              variant: "destructive",
+            });
+        }
+      } catch (error: any) {
+        console.error("LoginPage: Login API error:", error); // DEBUG
+        toast({
+          title: "Đăng nhập thất bại",
+          description: error.message || "Tên đăng nhập, email hoặc mật khẩu không đúng.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      toast({
-        title: "Đăng nhập thất bại",
-        description: error.message || "Tên đăng nhập, email hoặc mật khẩu không đúng.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (

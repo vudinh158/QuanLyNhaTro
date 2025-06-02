@@ -1,5 +1,5 @@
 const { DichVu, NhaTro_DichVuApDung } = require('../models');
-const AppError = require('../utils/error');
+const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
 
 exports.createDichVu = async (req, res, next) => {

@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const ChiTietHoaDon = sequelize.define('ChiTietHoaDon', {
+  const InvoiceDetail = sequelize.define('InvoiceDetail', {
     MaChiTietHD: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -10,18 +10,10 @@ module.exports = (sequelize, DataTypes) => {
     MaHoaDon: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'HoaDon',
-        key: 'MaHoaDon'
-      }
     },
     MaDV: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: {
-        model: 'DichVu',
-        key: 'MaDV'
-      }
     },
     MoTaChiTiet: {
       type: DataTypes.STRING(255),
@@ -48,17 +40,16 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
-  ChiTietHoaDon.associate = function(models) {
-    ChiTietHoaDon.belongsTo(models.HoaDon, {
+  InvoiceDetail.associate = function(models) {
+    InvoiceDetail.belongsTo(models.Invoice, {
       foreignKey: 'MaHoaDon',
-      as: 'hoaDon'
+      as: 'invoice'
     });
-    ChiTietHoaDon.belongsTo(models.DichVu, {
+    InvoiceDetail.belongsTo(models.Service, {
       foreignKey: 'MaDV',
-      as: 'dichVu',
+      as: 'service',
       allowNull: true
     });
   };
-
-  return ChiTietHoaDon;
+  return InvoiceDetail;
 };

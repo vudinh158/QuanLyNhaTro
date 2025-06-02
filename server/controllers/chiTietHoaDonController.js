@@ -1,5 +1,5 @@
 const { ChiTietHoaDon, HoaDon, DichVu } = require('../models');
-const AppError = require('../utils/error');
+const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
 
 exports.createChiTietHoaDon = async (req, res, next) => {

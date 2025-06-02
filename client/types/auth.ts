@@ -33,7 +33,7 @@ export interface User {
     Email?: string;
     MaVaiTro: number;
     TrangThai: string;
-    vaiTro: {
+    role: {
       MaVaiTro: number;
       TenVaiTro: string;
     };

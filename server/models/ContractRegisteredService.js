@@ -1,23 +1,15 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const HopDong_DichVuDangKy = sequelize.define('HopDong_DichVuDangKy', {
+  const ContractRegisteredService = sequelize.define('ContractRegisteredService', {
     MaHopDong: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       allowNull: false,
-      references: {
-        model: 'HopDong',
-        key: 'MaHopDong'
-      }
     },
     MaDV: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       allowNull: false,
-      references: {
-        model: 'DichVu',
-        key: 'MaDV'
-      }
     },
     GhiChu: {
       type: DataTypes.TEXT,
@@ -29,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     tableName: 'HopDong_DichVuDangKy',
-    timestamps: false // NgayDangKy đã được định nghĩa
+    timestamps: false
   });
-  return HopDong_DichVuDangKy;
+  return ContractRegisteredService;
 };

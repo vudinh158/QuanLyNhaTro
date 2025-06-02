@@ -22,7 +22,7 @@ const {
   InvoiceDetail,
   PaymentDetail,
   Service,
-  ElectricWater,
+  ElectricWaterUsage,
   ServicePriceHistory,
   ElectricWaterPriceHistory,
   PaymentMethod,
@@ -69,7 +69,7 @@ if (!isTest) {
   connection.connect((err) => {
     if (err) {
       console.error("❌ Kết nối RDS thất bại:", err);
-      return;
+        return;
     }
     console.log("✅ Kết nối thành công đến RDS!");
     connection.end();
@@ -81,7 +81,7 @@ if (!isTest) {
     InvoiceDetail.sync(),
     PaymentDetail.sync(),
     Service.sync(),
-    ElectricWater.sync(),
+    ElectricWaterUsage.sync(),
     ServicePriceHistory.sync(),
     ElectricWaterPriceHistory.sync(),
     PaymentMethod.sync(),
