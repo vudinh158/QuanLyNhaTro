@@ -6,6 +6,9 @@ const bodyParser = require("body-parser");
 const path = require("path");
 
 const authRoutes = require("./routes/auth");
+const propertyRoutes = require("./routes/propertyRoutes");
+const roomRoutes = require("./routes/roomRoutes");
+const tenantRoutes = require("./routes/tenantRoutes");
 const chiTietHoaDonRoutes = require("./routes/chiTietHoaDon");
 const chiTietThanhToanRoutes = require("./routes/chiTietThanhToan");
 const hoaDonRoutes = require("./routes/hoaDon");
@@ -38,6 +41,9 @@ app.use(bodyParser.json());
 
 // Đăng ký các route
 app.use("/api/auth", authRoutes);
+app.use("/api/properties", propertyRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/tenants", tenantRoutes);
 app.use("/api/chi-tiet-hoa-don", chiTietHoaDonRoutes);
 app.use("/api/chi-tiet-thanh-toan", chiTietThanhToanRoutes);
 app.use("/api/hoa-don", hoaDonRoutes);

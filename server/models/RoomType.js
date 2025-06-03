@@ -26,17 +26,31 @@ module.exports = (sequelize, DataTypes) => {
     },
     MoTa: {
       type: DataTypes.TEXT,
-    }
-  }, {
-    tableName: 'LoaiPhong',
-    timestamps: false
-  });
-
-  RoomType.associate = function(models) {
-    RoomType.hasMany(models.Room, {
-      foreignKey: 'MaLoaiPhong',
-      as: 'rooms'
+    },
+    MaNhaTro: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      }
+    }, {
+      tableName: 'LoaiPhong',
+      timestamps: false,
+      indexes: [
+        {
+          unique: true,
+          fields: ['MaNhaTro', 'TenLoai']
+        }
+      ]
     });
+  
+    RoomType.associate = function(models) {
+      RoomType.belongsTo(models.Property, {
+        foreignKey: 'MaNhaTro',
+        as: 'property'
+      });
+      RoomType.hasMany(models.Room, {
+        foreignKey: 'MaLoaiPhong',
+        as: 'rooms'
+      });
+    };
+    return RoomType;
   };
-  return RoomType;
-};

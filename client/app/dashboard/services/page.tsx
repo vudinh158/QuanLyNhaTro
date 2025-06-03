@@ -70,7 +70,7 @@ export default function ServicesPage() {
   }
 
   return (
-    <DashboardLayout>
+    // <DashboardLayout>
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Quản lý dịch vụ</h1>
@@ -170,6 +170,6 @@ export default function ServicesPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    // </DashboardLayout>
   )
 }

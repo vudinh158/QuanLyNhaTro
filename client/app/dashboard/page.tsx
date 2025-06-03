@@ -7,7 +7,7 @@ import Link from "next/link"
 
 export default function DashboardPage() {
   return (
-    <DashboardLayout>
+    // <DashboardLayout>
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Tổng quan</h1>
@@ -233,6 +233,6 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
-    </DashboardLayout>
+    // </DashboardLayout>
   )
 }

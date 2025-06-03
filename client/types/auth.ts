@@ -30,7 +30,7 @@ export interface UserProfile {
 export interface User {
     MaTK: number;
     TenDangNhap: string;
-    Email?: string;
+    // Email?: string;
     MaVaiTro: number;
     TrangThai: string;
     role: {

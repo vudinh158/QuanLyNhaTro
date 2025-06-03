@@ -1,4 +1,4 @@
-const { DichVu, NhaTro_DichVuApDung } = require('../models');
+const { Service, NhaTro_DichVuApDung } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
 
@@ -16,7 +16,7 @@ exports.createDichVu = async (req, res, next) => {
     const transaction = await sequelize.transaction();
 
     try {
-      const dichVu = await DichVu.create(
+      const dichVu = await Service.create(
         {
           TenDV,
           LoaiDichVu,
@@ -53,7 +53,7 @@ exports.getDichVu = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const dichVu = await DichVu.findByPk(id, {
+    const dichVu = await Service.findByPk(id, {
       include: [{ model: NhaTro, as: 'nhaTroRieng' }, { model: NhaTro, as: 'nhaTrosApDung' }],
     });
 
@@ -84,12 +84,12 @@ exports.getAllDichVu = async (req, res, next) => {
       ];
     }
 
-    const dichVus = await DichVu.findAll({
+    const dichVus = await Service.findAll({
       where,
       include: [
-        { model: NhaTro, as: 'nhaTroRieng' },
+        { model: Property, as: 'nhaTroRieng' },
         {
-          model: NhaTro,
+          model: Property,
           as: 'nhaTrosApDung',
           through: { attributes: [] },
           include: [{ model: ChuTro, as: 'chuTro' }],
@@ -112,7 +112,7 @@ exports.updateDichVu = async (req, res, next) => {
     const { id } = req.params;
     const { TenDV, LoaiDichVu, DonViTinh, MaNhaTro, HoatDong } = req.body;
 
-    const dichVu = await DichVu.findByPk(id, {
+    const dichVu = await Service.findByPk(id, {
       include: [{ model: NhaTro, as: 'nhaTroRieng' }],
     });
 
@@ -162,7 +162,7 @@ exports.deleteDichVu = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const dichVu = await DichVu.findByPk(id, {
+    const dichVu = await Service.findByPk(id, {
       include: [{ model: NhaTro, as: 'nhaTroRieng' }],
     });
 

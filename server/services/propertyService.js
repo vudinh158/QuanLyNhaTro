@@ -30,7 +30,6 @@ const getPropertyByIdAndLandlord = async (propertyId, maChuTro) => {
       MaNhaTro: propertyId,
       MaChuTro: maChuTro,
     },
-    // include: [ /* các model liên quan nếu cần */ ]
   });
   if (!property) {
     throw new AppError('Không tìm thấy nhà trọ hoặc bạn không có quyền truy cập.', 404);
@@ -39,9 +38,9 @@ const getPropertyByIdAndLandlord = async (propertyId, maChuTro) => {
 };
 
 /**
- * Tạo nhà trọ mới
- * @param {number} maChuTro - MaChuTro của người tạo
- * @param {object} propertyData - Dữ liệu nhà trọ (TenNhaTro, DiaChi, GhiChu)
+ * 
+ * @param {number} maChuTro
+ * @param {object} propertyData
  * @returns {Promise<Property>}
  */
 const createProperty = async (maChuTro, propertyData) => {
@@ -61,10 +60,10 @@ const createProperty = async (maChuTro, propertyData) => {
 };
 
 /**
- * Cập nhật thông tin nhà trọ
- * @param {number} propertyId - MaNhaTro
- * @param {number} maChuTro - MaChuTro của chủ trọ hiện tại
- * @param {object} updateData - Dữ liệu cần cập nhật
+ * 
+ * @param {number} propertyId 
+ * @param {number} maChuTro 
+ * @param {object} updateData 
  * @returns {Promise<Property>}
  */
 const updateProperty = async (propertyId, maChuTro, updateData) => {
@@ -79,7 +78,6 @@ const updateProperty = async (propertyId, maChuTro, updateData) => {
     throw new AppError('Không tìm thấy nhà trọ hoặc bạn không có quyền chỉnh sửa.', 404);
   }
 
-  // Chỉ cho phép cập nhật các trường cụ thể
   const allowedUpdates = ['TenNhaTro', 'DiaChi', 'GhiChu'];
   const updates = {};
   Object.keys(updateData).forEach((key) => {
@@ -97,9 +95,8 @@ const updateProperty = async (propertyId, maChuTro, updateData) => {
 };
 
 /**
- * Xóa nhà trọ
- * @param {number} propertyId - MaNhaTro
- * @param {number} maChuTro - MaChuTro của chủ trọ hiện tại
+ * @param {number} propertyId 
+ * @param {number} maChuTro 
  * @returns {Promise<void>}
  */
 const deleteProperty = async (propertyId, maChuTro) => {
@@ -114,12 +111,10 @@ const deleteProperty = async (propertyId, maChuTro) => {
     throw new AppError('Không tìm thấy nhà trọ hoặc bạn không có quyền xóa.', 404);
   }
 
-  // Kiểm tra xem nhà trọ có phòng nào đang được sử dụng không (cần model Room)
   const roomsInProperty = await Room.count({ where: { MaNhaTro: propertyId } });
   if (roomsInProperty > 0) {
     throw new AppError('Không thể xóa nhà trọ vì vẫn còn phòng trong nhà trọ này.', 400);
   }
-  // Thêm các kiểm tra ràng buộc khác nếu cần (ví dụ: có hợp đồng đang hoạt động, v.v.)
 
   await property.destroy();
 };

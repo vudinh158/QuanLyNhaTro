@@ -1,386 +1,244 @@
-"use client"
+// apps/client-nextjs/app/(dashboard)/rooms/[id]/page.tsx
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import DashboardLayout from "@/components/dashboard/dashboard-layout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Home, Pencil, Trash2, Users, FileText, Zap, ShoppingBag } from "lucide-react"
-import Link from "next/link"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { useToast } from "@/components/ui/use-toast"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { ArrowLeft, Edit, Home as HomeIcon, BedDouble, DollarSign, UserCircle, FileText, Zap, ShoppingBag, Settings2, PlusCircle } from 'lucide-react';
+import { getRoomById } from "@/services/roomService";
+import type { Room } from "@/types/room";
+import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from '@/components/ui/separator';
 
-export default function RoomDetailsPage({ params }: { params: { id: string } }) {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isDeleting, setIsDeleting] = useState(false)
+// Giả định bạn có thể muốn lấy thông tin hợp đồng hiện tại của phòng
+// import { getCurrentContractForRoom } from '@/services/contractService'; // Cần tạo service này
+// import type { Contract } from '@/types/contract'; // Cần type này
 
-  // Giả lập dữ liệu phòng
-  const room = {
-    id: params.id,
-    name: "P101",
-    property: "Nhà trọ Minh Tâm",
-    propertyId: "1",
-    type: "Phòng đơn",
-    status: "occupied",
-    price: "2,500,000 VNĐ/tháng",
-    deposit: "5,000,000 VNĐ",
-    area: "20m²",
-    note: "Phòng có cửa sổ, hướng Đông Nam, thoáng mát.",
-    createdAt: "01/01/2025",
-    facilities: ["Điều hòa", "Nóng lạnh", "Tủ quần áo", "Giường", "Bàn học"],
+export default function RoomDetailsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { user, isLoading: authLoading } = useAuth();
+
+  const [room, setRoom] = useState<Room | null>(null);
+  // const [currentContract, setCurrentContract] = useState<Contract | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const roomId = Number(params.id);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (user.role?.TenVaiTro !== 'Chủ trọ') {
+      toast({ title: "Lỗi", description: "Bạn không có quyền truy cập trang này.", variant: "destructive" });
+      router.push('/dashboard');
+      return;
+    }
+    if (isNaN(roomId)) {
+      toast({ title: "Lỗi", description: "Mã phòng không hợp lệ.", variant: "destructive" });
+      router.push(`/dashboard/rooms${room?.MaNhaTro ? `?propertyId=${room.MaNhaTro}` : ''}`);
+      return;
+    }
+
+    const fetchRoomDetails = async () => {
+      setIsLoading(true);
+      try {
+        const roomData = await getRoomById(roomId);
+        setRoom(roomData);
+        // (Tùy chọn) Lấy thông tin hợp đồng hiện tại của phòng
+        // if (roomData.TrangThai === 'Đang thuê') {
+        //   const contractData = await getCurrentContractForRoom(roomId);
+        //   setCurrentContract(contractData);
+        // }
+      } catch (error: any) {
+        toast({
+          title: "Lỗi tải thông tin phòng",
+          description: error.message || "Không thể tải dữ liệu. Vui lòng thử lại.",
+          variant: "destructive",
+        });
+        router.push(`/dashboard/rooms${room ? `?propertyId=${room.MaNhaTro}` : ''}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRoomDetails();
+  }, [roomId, user, authLoading, router, toast]);
+
+
+  const renderDetailItem = (label: string, value?: string | number | null) => (
+    <div className="flex justify-between py-2">
+      <span className="text-sm text-muted-foreground">{label}:</span>
+      <span className="text-sm font-medium text-right">{value || 'N/A'}</span>
+    </div>
+  );
+
+  if (isLoading || authLoading || !room) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Skeleton className="h-10 w-10 mr-2 rounded-md" />
+            <Skeleton className="h-8 w-60" />
+          </div>
+          <Skeleton className="h-10 w-28" />
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-7 w-3/4 mb-1" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-12 w-full" />
+            <Separator />
+            <Skeleton className="h-5 w-1/4" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          </CardContent>
+          <CardFooter className="border-t pt-4 mt-4 flex flex-wrap gap-2">
+            <Skeleton className="h-10 w-36" />
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-44" />
+          </CardFooter>
+        </Card>
+      </div>
+    );
   }
 
-  // Giả lập dữ liệu người thuê
-  const tenants = [
-    {
-      id: 1,
-      name: "Nguyễn Văn B",
-      idCard: "079201001234",
-      phone: "0901234567",
-      email: "nguyenvanb@example.com",
-      isRepresentative: true,
-    },
-    {
-      id: 2,
-      name: "Phạm Thị E",
-      idCard: "079201003456",
-      phone: "0904567890",
-      email: "phamthie@example.com",
-      isRepresentative: false,
-    },
-  ]
+  const propertyIdOfRoom = room.MaNhaTro;
 
-  // Giả lập dữ liệu hợp đồng
-  const contract = {
-    id: "HD001",
-    startDate: "01/01/2025",
-    endDate: "15/05/2025",
-    rent: "2,500,000 VNĐ/tháng",
-    deposit: "5,000,000 VNĐ",
-    status: "active",
-  }
-
-  const handleDelete = () => {
-    setIsDeleting(true)
-
-    // Giả lập xóa phòng
-    setTimeout(() => {
-      setIsDeleting(false)
-      toast({
-        title: "Xóa phòng thành công",
-        description: "Phòng đã được xóa khỏi hệ thống",
-      })
-      router.push("/dashboard/rooms")
-    }, 1500)
-  }
 
   return (
-    <DashboardLayout>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Home className="h-6 w-6" />
-            <h1 className="text-2xl font-bold tracking-tight">
-              {room.name} - {room.property}
-            </h1>
-            <Badge
-              variant={room.status === "available" ? "outline" : room.status === "occupied" ? "default" : "secondary"}
-            >
-              {room.status === "available" ? "Còn trống" : room.status === "occupied" ? "Đang thuê" : "Đang sửa chữa"}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" asChild>
-              <Link href={`/dashboard/rooms/${params.id}/utilities`}>
-                <Zap className="mr-2 h-4 w-4" />
-                Ghi điện nước
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/dashboard/rooms/${params.id}/services`}>
-                <ShoppingBag className="mr-2 h-4 w-4" />
-                Dịch vụ
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/dashboard/rooms/${params.id}/edit`}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Chỉnh sửa
-              </Link>
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Xóa
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Hành động này không thể hoàn tác. Phòng này sẽ bị xóa vĩnh viễn khỏi hệ thống.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    disabled={isDeleting}
-                  >
-                    {isDeleting ? "Đang xóa..." : "Xóa"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Button variant="outline" size="icon" asChild className="mr-3">
+            <Link href={`/dashboard/rooms?propertyId=${propertyIdOfRoom}`}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{room.TenPhong}</h1>
+            <p className="text-sm text-muted-foreground">{room.property?.TenNhaTro || `Nhà trọ ID: ${room.MaNhaTro}`}</p>
           </div>
         </div>
-
-        <Tabs defaultValue="details">
-          <TabsList>
-            <TabsTrigger value="details">Thông tin phòng</TabsTrigger>
-            <TabsTrigger value="tenants">Người thuê</TabsTrigger>
-            <TabsTrigger value="contract">Hợp đồng</TabsTrigger>
-            <TabsTrigger value="utilities">Điện nước</TabsTrigger>
-            <TabsTrigger value="services">Dịch vụ</TabsTrigger>
-          </TabsList>
-          <TabsContent value="details" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Thông tin phòng</CardTitle>
-                <CardDescription>Chi tiết về phòng {room.name}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium mb-2">Thông tin cơ bản</h3>
-                      <div className="grid gap-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Tên phòng:</span>
-                          <span>{room.name}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Nhà trọ:</span>
-                          <span>{room.property}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Loại phòng:</span>
-                          <span>{room.type}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Diện tích:</span>
-                          <span>{room.area}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Ngày tạo:</span>
-                          <span>{room.createdAt}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-2">Ghi chú</h3>
-                      <p className="text-sm">{room.note}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium mb-2">Thông tin giá</h3>
-                      <div className="grid gap-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Giá thuê:</span>
-                          <span>{room.price}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Tiền cọc:</span>
-                          <span>{room.deposit}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-2">Tiện nghi</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {room.facilities.map((facility, index) => (
-                          <Badge key={index} variant="outline">
-                            {facility}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="tenants" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Người thuê</CardTitle>
-                <CardDescription>Danh sách người đang thuê phòng này</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {tenants.length > 0 ? (
-                  <div className="space-y-4">
-                    {tenants.map((tenant) => (
-                      <div key={tenant.id} className="flex items-start gap-4 p-4 border rounded-lg">
-                        <Avatar className="h-10 w-10 border">
-                          <AvatarImage src={`/placeholder.svg?text=${tenant.name.charAt(0)}`} alt={tenant.name} />
-                          <AvatarFallback>{tenant.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{tenant.name}</h3>
-                            {tenant.isRepresentative && <Badge variant="default">Người đại diện</Badge>}
-                          </div>
-                          <div className="grid gap-1 text-sm mt-1">
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">CCCD:</span>
-                              <span>{tenant.idCard}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">SĐT:</span>
-                              <span>{tenant.phone}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">Email:</span>
-                              <span>{tenant.email || "Không có"}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/tenants/${tenant.id}`}>Chi tiết</Link>
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                    <h3 className="mt-4 text-lg font-medium">Không có người thuê</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">Phòng này hiện không có người thuê nào.</p>
-                    <Button className="mt-4" asChild>
-                      <Link href={`/dashboard/contracts/new?room=${params.id}`}>Tạo hợp đồng</Link>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="contract" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Thông tin hợp đồng</CardTitle>
-                <CardDescription>Chi tiết về hợp đồng thuê phòng hiện tại</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {contract ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">Mã hợp đồng: {contract.id}</h3>
-                      <Badge variant="default">Có hiệu lực</Badge>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Ngày bắt đầu:</span>
-                          <span>{contract.startDate}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Ngày kết thúc:</span>
-                          <span>{contract.endDate}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Tiền thuê:</span>
-                          <span>{contract.rent}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Tiền cọc:</span>
-                          <span>{contract.deposit}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2 pt-4">
-                      <Button variant="outline" asChild>
-                        <Link href={`/dashboard/contracts/${contract.id}`}>Xem chi tiết</Link>
-                      </Button>
-                      <Button variant="outline" asChild>
-                        <Link href={`/dashboard/bills/new?contract=${contract.id}`}>Tạo hóa đơn</Link>
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                    <h3 className="mt-4 text-lg font-medium">Không có hợp đồng</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">Phòng này hiện không có hợp đồng thuê nào.</p>
-                    <Button className="mt-4" asChild>
-                      <Link href={`/dashboard/contracts/new?room=${params.id}`}>Tạo hợp đồng</Link>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="utilities" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quản lý điện nước</CardTitle>
-                <CardDescription>Ghi nhận và theo dõi chỉ số điện nước của phòng</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col items-center justify-center py-6 gap-4">
-                  <Zap className="h-12 w-12 text-primary" />
-                  <h3 className="text-lg font-medium">Quản lý chỉ số điện nước</h3>
-                  <p className="text-sm text-muted-foreground text-center max-w-md">
-                    Ghi nhận chỉ số công tơ điện và nước, tính toán lượng tiêu thụ và chi phí hàng tháng.
-                  </p>
-                  <Button asChild>
-                    <Link href={`/dashboard/rooms/${params.id}/utilities`}>Ghi điện nước</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="services" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quản lý dịch vụ</CardTitle>
-                <CardDescription>Đăng ký và ghi nhận sử dụng dịch vụ cho phòng</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col items-center justify-center py-6 gap-4">
-                  <ShoppingBag className="h-12 w-12 text-primary" />
-                  <h3 className="text-lg font-medium">Quản lý dịch vụ phòng</h3>
-                  <p className="text-sm text-muted-foreground text-center max-w-md">
-                    Đăng ký các dịch vụ cho phòng và ghi nhận việc sử dụng dịch vụ theo thời gian.
-                  </p>
-                  <Button asChild>
-                    <Link href={`/dashboard/rooms/${params.id}/services`}>Quản lý dịch vụ</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <Button asChild variant="outline">
+          <Link href={`/dashboard/rooms/${room.MaPhong}/edit`}>
+            <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa phòng
+          </Link>
+        </Button>
       </div>
-    </DashboardLayout>
-  )
+
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Thông tin chi tiết phòng</CardTitle>
+              <CardDescription>Xem lại thông tin và các tiện ích của phòng.</CardDescription>
+            </div>
+            <Badge variant={
+                room.TrangThai === 'Đang thuê' ? 'default' :
+                room.TrangThai === 'Còn trống' ? 'outline' :
+                'secondary'
+            }>
+                {room.TrangThai}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="divide-y">
+          {renderDetailItem("Tên phòng", room.TenPhong)}
+          {renderDetailItem("Loại phòng", room.roomType?.TenLoai)}
+          {renderDetailItem("Giá đề xuất", room.roomType?.Gia ? `${room.roomType.Gia.toLocaleString()} VNĐ/tháng` : 'N/A')}
+          {renderDetailItem("Diện tích", room.roomType?.DienTich ? `${room.roomType.DienTich} m²` : 'N/A')}
+          {renderDetailItem("Số người tối đa", room.roomType?.SoNguoiToiDa)}
+          {renderDetailItem("Mô tả loại phòng", room.roomType?.MoTa)}
+          {renderDetailItem("Ghi chú phòng", room.GhiChu)}
+          {renderDetailItem("Trạng thái", room.TrangThai)}
+          {renderDetailItem("Thuộc nhà trọ", room.property?.TenNhaTro)}
+        </CardContent>
+      </Card>
+
+      {/* Phần hợp đồng hiện tại (nếu có) */}
+      {/* {room.TrangThai === 'Đang thuê' && currentContract && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Hợp đồng hiện tại</CardTitle>
+            <CardDescription>Thông tin hợp đồng đang có hiệu lực cho phòng này.</CardDescription>
+          </CardHeader>
+          <CardContent className="divide-y">
+            {renderDetailItem("Mã hợp đồng", currentContract.MaHopDong)}
+            {renderDetailItem("Ngày bắt đầu", currentContract.NgayBatDau)}
+            {renderDetailItem("Ngày kết thúc", currentContract.NgayKetThuc)}
+            {renderDetailItem("Tiền thuê", `${currentContract.TienThueThoaThuan.toLocaleString()} VNĐ`)}
+            {renderDetailItem("Tiền cọc", `${currentContract.TienCoc.toLocaleString()} VNĐ`)}
+          </CardContent>
+          <CardFooter className="border-t pt-4">
+             <Button asChild variant="outline">
+                <Link href={`/dashboard/contracts/${currentContract.MaHopDong}`}>
+                    <FileText className="mr-2 h-4 w-4" /> Xem chi tiết hợp đồng
+                </Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+      {room.TrangThai === 'Còn trống' && (
+         <div className="text-center py-4">
+            <Button asChild>
+                <Link href={`/dashboard/contracts/new?roomId=${room.MaPhong}&propertyId=${propertyIdOfRoom}`}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Tạo hợp đồng mới
+                </Link>
+            </Button>
+        </div>
+      )} */}
+
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quản lý & Tiện ích</CardTitle>
+          <CardDescription>Truy cập các chức năng quản lý cho phòng này.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Button variant="outline" className="w-full justify-start p-4 h-auto" asChild>
+            <Link href={`/dashboard/rooms/${room.MaPhong}/utilities`}>
+              <Zap className="mr-3 h-5 w-5 text-primary" />
+              <div>
+                <p className="font-semibold">Ghi điện nước</p>
+                <p className="text-xs text-muted-foreground">Ghi nhận chỉ số điện, nước hàng tháng.</p>
+              </div>
+            </Link>
+          </Button>
+          <Button variant="outline" className="w-full justify-start p-4 h-auto" asChild>
+            <Link href={`/dashboard/rooms/${room.MaPhong}/services`}>
+              <ShoppingBag className="mr-3 h-5 w-5 text-primary" />
+               <div>
+                <p className="font-semibold">Quản lý dịch vụ</p>
+                <p className="text-xs text-muted-foreground">Đăng ký và theo dõi dịch vụ phòng.</p>
+              </div>
+            </Link>
+          </Button>
+           {room.TrangThai === 'Còn trống' && (
+             <Button className="w-full justify-start p-4 h-auto col-span-full sm:col-span-1" asChild>
+                <Link href={`/dashboard/contracts/new?roomId=${room.MaPhong}&propertyId=${propertyIdOfRoom}`}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Tạo hợp đồng mới
+                </Link>
+            </Button>
+           )}
+            {/* Thêm các nút khác nếu cần, ví dụ: Xem hóa đơn của phòng, Lịch sử sửa chữa,... */}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

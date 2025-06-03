@@ -36,6 +36,10 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'MaNhaTro',
       as: 'rooms'
     });
+    Property.hasMany(models.RoomType, { 
+        foreignKey: 'MaNhaTro',
+        as: 'roomTypes'
+      });
     Property.hasMany(models.ElectricWaterPriceHistory, {
       foreignKey: 'MaNhaTro',
       as: 'electricWaterPriceHistories'

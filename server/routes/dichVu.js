@@ -3,6 +3,8 @@ const router = express.Router();
 const dichVuController = require('../controllers/dichVuController');
 const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
+router.use(protect);
+
 router
   .route('/')
   .post(
