@@ -46,6 +46,7 @@ export default function LoginPage() {
         });
   
         if (response.token && response.data?.user) {
+          localStorage.setItem('token', response.token)
           console.log("LoginPage: Calling contextLogin with user:", response.data.user, "and token:", response.token); // DEBUG
           contextLogin(response.data.user, response.token);
         } else {

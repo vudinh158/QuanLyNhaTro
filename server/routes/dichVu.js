@@ -5,13 +5,33 @@ const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
 router
   .route('/')
-  .post(protect, restrictTo('Tạo dịch vụ'), dichVuController.createDichVu)
-  .get(protect, restrictTo('Xem dịch vụ'), dichVuController.getAllDichVu);
+  .post(
+    // protect,
+    restrictTo('service_definition:manage_own_property'),
+    dichVuController.createDichVu
+  )
+  .get(
+    // protect,
+    restrictTo('service_definition:manage_own_property'),
+    dichVuController.getAllDichVu
+  );
 
 router
   .route('/:id')
-  .get(protect, restrictTo('Xem dịch vụ'), dichVuController.getDichVu)
-  .patch(protect, restrictTo('Sửa dịch vụ'), dichVuController.updateDichVu)
-  .delete(protect, restrictTo('Xóa dịch vụ'), dichVuController.deleteDichVu);
+  .get(
+    // protect,
+    restrictTo('service_definition:manage_own_property'),
+    dichVuController.getDichVu
+  )
+  .patch(
+    // protect,
+    restrictTo('service_definition:manage_own_property'),
+    dichVuController.updateDichVu
+  )
+  .delete(
+    // protect,
+    restrictTo('service_definition:manage_own_property'),
+    dichVuController.deleteDichVu
+  );
 
 module.exports = router;
