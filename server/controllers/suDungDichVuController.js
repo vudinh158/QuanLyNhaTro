@@ -1,58 +1,74 @@
-const { SuDungDichVu, DichVu, LichSuGiaDichVu, Phong, NhaTro } = require('../models');
+const {
+  ServiceUsage,
+  Service,
+  ServicePriceHistory,
+  Room,
+  Property,
+  Occupant,
+  Contract
+} = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
 
 exports.createSuDungDichVu = async (req, res, next) => {
   try {
-    const { MaPhong, MaDV, NgaySuDung, SoLuong, GhiChu } = req.body;
+    const { MaPhong, MaDV, SoLuong, NgaySuDung } = req.body;
 
-    const phong = await Phong.findByPk(MaPhong, {
-      include: [{ model: NhaTro, as: 'nhaTro' }],
+    const phong = await Room.findByPk(MaPhong, {
+      include: { model: Property, as: 'property' }
+    });
+    if (!phong) throw new AppError('Room not found', 404);
+    if (req.user.TenVaiTro === 'Chủ trọ' && phong.property.MaChuTro !== req.user.MaChuTro) {
+      throw new AppError('You do not have permission to add usage to this room', 403);
+    }
+
+    const gia = await ServicePriceHistory.findOne({
+      where: {
+        MaDV,
+        NgayApDung: { [Op.lte]: NgaySuDung }
+      },
+      order: [['NgayApDung', 'DESC']]
+    });
+    if (!gia) throw new AppError('No price found for this service at that date', 400);
+
+    const thanhTien = gia.DonGiaMoi * SoLuong;
+    const usage = await ServiceUsage.create({ MaPhong, MaDV, SoLuong, NgaySuDung, ThanhTien: thanhTien });
+
+    res.status(201).json({ status: 'success', data: usage });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getAllSuDungDichVu = async (req, res, next) => {
+  try {
+    let whereClause = {};
+
+    if (req.user.TenVaiTro === 'Chủ trọ') {
+      whereClause['$room.property.MaChuTro$'] = req.user.MaChuTro;
+    } else if (req.user.TenVaiTro === 'Khách thuê') {
+      const contracts = await Contract.findAll({
+        include: {
+          model: Occupant,
+          as: 'occupants',
+          where: { MaNguoiDung: req.user.MaNguoiDung }
+        },
+        where: { TrangThai: 'Có hiệu lực' },
+        attributes: ['MaPhong']
+      });
+      const maPhongList = contracts.map(c => c.MaPhong);
+      whereClause['MaPhong'] = { [Op.in]: maPhongList };
+    }
+
+    const records = await ServiceUsage.findAll({
+      where: whereClause,
+      include: [
+        { model: Room, as: 'room', include: { model: Property, as: 'property' } },
+        { model: Service, as: 'service' }
+      ]
     });
 
-    if (!phong) {
-      throw new AppError('Room not found', 404);
-    }
-
-    if (req.user.TenVaiTro === 'Chủ trọ' && phong.nhaTro.MaChuTro !== req.user.MaChuTro) {
-      throw new AppError('You do not have permission to record for this room', 403);
-    }
-
-    const dichVu = await DichVu.findByPk(MaDV);
-    if (!dichVu || !dichVu.HoatDong) {
-      throw new AppError('Service not found or inactive', 404);
-    }
-
-    if (dichVu.MaNhaTro && dichVu.MaNhaTro !== phong.MaNhaTro) {
-      throw new AppError('Service not applicable to this property', 400);
-    }
-
-    const gia = await LichSuGiaDichVu.findOne({
-      where: { MaDV, NgayApDung: { [Op.lte]: NgaySuDung } },
-      order: [['NgayApDung', 'DESC']],
-    });
-
-    if (!gia) {
-      throw new AppError('No applicable price found for this period', 400);
-    }
-
-    const ThanhTien = SoLuong * parseFloat(gia.DonGiaMoi);
-
-    const suDungDichVu = await SuDungDichVu.create({
-      MaPhong,
-      MaDV,
-      NgaySuDung,
-      SoLuong,
-      DonGia: gia.DonGiaMoi,
-      ThanhTien,
-      GhiChu,
-      TrangThai: 'Mới ghi',
-    });
-
-    res.status(201).json({
-      status: 'success',
-      data: suDungDichVu,
-    });
+    res.status(200).json({ status: 'success', results: records.length, data: records });
   } catch (error) {
     next(error);
   }
@@ -62,75 +78,23 @@ exports.getSuDungDichVu = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const suDungDichVu = await SuDungDichVu.findByPk(id, {
+    const usage = await ServiceUsage.findByPk(id, {
       include: [
-        { model: Phong, as: 'phong', include: [{ model: NhaTro, as: 'nhaTro' }] },
-        { model: DichVu, as: 'dichVu' },
-      ],
+        { model: Room, as: 'room', include: { model: Property, as: 'property' } },
+        { model: Service, as: 'service' }
+      ]
     });
 
-    if (!suDungDichVu) {
-      throw new AppError('Service usage not found', 404);
+    if (!usage) throw new AppError('Không tìm thấy bản ghi sử dụng dịch vụ', 404);
+
+    if (
+      req.user.TenVaiTro === 'Chủ trọ' &&
+      usage.room.property.MaChuTro !== req.user.MaChuTro
+    ) {
+      throw new AppError('Bạn không có quyền truy cập bản ghi này', 403);
     }
 
-    if (req.user.TenVaiTro === 'Chủ trọ' && suDungDichVu.phong.nhaTro.MaChuTro !== req.user.MaChuTro) {
-      throw new AppError('You do not have permission to view this record', 403);
-    }
-
-    if (req.user.TenVaiTro === 'Khách thuê') {
-      const nguoiOCung = await NguoiOCung.findOne({
-        where: { MaKhachThue: req.user.MaKhachThue, MaHopDong: { [Op.in]: await getHopDongIdsForPhong(suDungDichVu.MaPhong) } },
-      });
-      if (!nguoiOCung) {
-        throw new AppError('You do not have permission to view this record', 403);
-      }
-    }
-
-    res.status(200).json({
-      status: 'success',
-      data: suDungDichVu,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.getAllSuDungDichVu = async (req, res, next) => {
-  try {
-    const where = {};
-    if (req.user.TenVaiTro === 'Chủ trọ') {
-      where['$phong.nhaTro.MaChuTro$'] = req.user.MaChuTro;
-    } else if (req.user.TenVaiTro === 'Khách thuê') {
-      where['$hopDong.nguoiOCungs.MaKhachThue$'] = req.user.MaKhachThue;
-    }
-
-    const suDungDichVus = await SuDungDichVu.findAll({
-      where,
-      include: [
-        {
-          model: Phong,
-          as: 'phong',
-          include: [
-            {
-              model: NhaTro,
-              as: 'nhaTro',
-            },
-            {
-              model: HopDong,
-              as: 'hopDongs',
-              include: [{ model: NguoiOCung, as: 'nguoiOCungs' }],
-            },
-          ],
-        },
-        { model: DichVu, as: 'dichVu' },
-      ],
-    });
-
-    res.status(200).json({
-      status: 'success',
-      results: suDungDichVus.length,
-      data: suDungDichVus,
-    });
+    res.status(200).json({ status: 'success', data: usage });
   } catch (error) {
     next(error);
   }
@@ -139,47 +103,38 @@ exports.getAllSuDungDichVu = async (req, res, next) => {
 exports.updateSuDungDichVu = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { SoLuong, NgaySuDung, GhiChu } = req.body;
+    const { SoLuong, NgaySuDung } = req.body;
 
-    const suDungDichVu = await SuDungDichVu.findByPk(id, {
-      include: [{ model: Phong, as: 'phong', include: [{ model: NhaTro, as: 'nhaTro' }] }],
+    const usage = await ServiceUsage.findByPk(id, {
+      include: { model: Room, as: 'room', include: { model: Property, as: 'property' } }
     });
 
-    if (!suDungDichVu) {
-      throw new AppError('Service usage not found', 404);
+    if (!usage) throw new AppError('Không tìm thấy bản ghi', 404);
+
+    if (
+      req.user.TenVaiTro === 'Chủ trọ' &&
+      usage.room.property.MaChuTro !== req.user.MaChuTro
+    ) {
+      throw new AppError('Bạn không có quyền sửa bản ghi này', 403);
     }
 
-    if (req.user.TenVaiTro === 'Chủ trọ' && suDungDichVu.phong.nhaTro.MaChuTro !== req.user.MaChuTro) {
-      throw new AppError('You do not have permission to update this record', 403);
-    }
-
-    if (suDungDichVu.TrangThai !== 'Mới ghi') {
-      throw new AppError('Cannot update a record that is already billed or cancelled', 400);
-    }
-
-    const gia = await LichSuGiaDichVu.findOne({
-      where: { MaDV: suDungDichVu.MaDV, NgayApDung: { [Op.lte]: NgaySuDung || suDungDichVu.NgaySuDung } },
-      order: [['NgayApDung', 'DESC']],
+    const gia = await ServicePriceHistory.findOne({
+      where: {
+        MaDV: usage.MaDV,
+        NgayApDung: { [Op.lte]: NgaySuDung }
+      },
+      order: [['NgayApDung', 'DESC']]
     });
 
-    if (!gia) {
-      throw new AppError('No applicable price found for this period', 400);
-    }
+    if (!gia) throw new AppError('Không tìm thấy giá tại thời điểm đó', 400);
 
-    const ThanhTien = SoLuong * parseFloat(gia.DonGiaMoi);
+    usage.SoLuong = SoLuong;
+    usage.NgaySuDung = NgaySuDung;
+    usage.ThanhTien = gia.DonGiaMoi * SoLuong;
 
-    await suDungDichVu.update({
-      SoLuong,
-      DonGia: gia.DonGiaMoi,
-      ThanhTien,
-      NgaySuDung,
-      GhiChu,
-    });
+    await usage.save();
 
-    res.status(200).json({
-      status: 'success',
-      data: suDungDichVu,
-    });
+    res.status(200).json({ status: 'success', data: usage });
   } catch (error) {
     next(error);
   }
@@ -188,29 +143,21 @@ exports.updateSuDungDichVu = async (req, res, next) => {
 exports.deleteSuDungDichVu = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const suDungDichVu = await SuDungDichVu.findByPk(id, {
-      include: [{ model: Phong, as: 'phong', include: [{ model: NhaTro, as: 'nhaTro' }] }],
+    const usage = await ServiceUsage.findByPk(id, {
+      include: {
+        model: Room,
+        as: 'room',
+        include: { model: Property, as: 'property' }
+      }
     });
+    if (!usage) throw new AppError('Usage record not found', 404);
 
-    if (!suDungDichVu) {
-      throw new AppError('Service usage not found', 404);
+    if (req.user.TenVaiTro === 'Chủ trọ' && usage.room.property.MaChuTro !== req.user.MaChuTro) {
+      throw new AppError('You do not have permission to delete this usage', 403);
     }
 
-    if (req.user.TenVaiTro === 'Chủ trọ' && suDungDichVu.phong.nhaTro.MaChuTro !== req.user.MaChuTro) {
-      throw new AppError('You do not have permission to delete this record', 403);
-    }
-
-    if (suDungDichVu.TrangThai !== 'Mới ghi') {
-      throw new AppError('Cannot delete a record that is already billed or cancelled', 400);
-    }
-
-    await suDungDichVu.update({ TrangThai: 'Đã hủy' });
-
-    res.status(204).json({
-      status: 'success',
-      data: null,
-    });
+    await usage.destroy();
+    res.status(204).json({ status: 'success', data: null });
   } catch (error) {
     next(error);
   }

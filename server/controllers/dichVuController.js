@@ -1,4 +1,4 @@
-const { Service, NhaTro_DichVuApDung } = require('../models');
+const { Service, Property, PropertyAppliedService, Landlord } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
 
@@ -7,103 +7,84 @@ exports.createDichVu = async (req, res, next) => {
     const { TenDV, LoaiDichVu, DonViTinh, MaNhaTro } = req.body;
 
     if (req.user.TenVaiTro === 'Chủ trọ' && MaNhaTro) {
-      const nhaTro = await NhaTro.findByPk(MaNhaTro);
+      const nhaTro = await Property.findByPk(MaNhaTro);
       if (!nhaTro || nhaTro.MaChuTro !== req.user.MaChuTro) {
         throw new AppError('You do not have permission to create service for this property', 403);
       }
     }
 
-    const transaction = await sequelize.transaction();
+    const transaction = await Service.sequelize.transaction();
 
     try {
-      const dichVu = await Service.create(
-        {
-          TenDV,
-          LoaiDichVu,
-          DonViTinh,
-          MaNhaTro,
-          HoatDong: true,
-        },
-        { transaction }
-      );
+      const newService = await Service.create({
+        TenDV,
+        LoaiDichVu,
+        DonViTinh,
+        MaNhaTro: MaNhaTro || null,
+        HoatDong: true,
+      }, { transaction });
 
       if (MaNhaTro) {
-        await NhaTro_DichVuApDung.create(
-          { MaNhaTro, MaDV: dichVu.MaDV },
-          { transaction }
-        );
+        await PropertyAppliedService.create({ MaNhaTro, MaDV: newService.MaDV }, { transaction });
       }
 
       await transaction.commit();
-
-      res.status(201).json({
-        status: 'success',
-        data: dichVu,
-      });
-    } catch (error) {
+      res.status(201).json({ status: 'success', data: newService });
+    } catch (err) {
       await transaction.rollback();
-      throw error;
+      throw err;
     }
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
 exports.getDichVu = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const dichVu = await Service.findByPk(id, {
-      include: [{ model: NhaTro, as: 'nhaTroRieng' }, { model: NhaTro, as: 'nhaTrosApDung' }],
+    const service = await Service.findByPk(id, {
+      include: [
+        { model: Property, as: 'propertySpecific' },
+        { model: Property, as: 'appliedToProperties' }
+      ]
     });
 
-    if (!dichVu) {
-      throw new AppError('Service not found', 404);
-    }
+    if (!service) throw new AppError('Service not found', 404);
 
-    if (req.user.TenVaiTro === 'Chủ trọ' && dichVu.MaNhaTro && dichVu.nhaTroRieng.MaChuTro !== req.user.MaChuTro) {
+    if (req.user.TenVaiTro === 'Chủ trọ' && service.MaNhaTro && service.propertySpecific?.MaChuTro !== req.user.MaChuTro) {
       throw new AppError('You do not have permission to view this service', 403);
     }
 
-    res.status(200).json({
-      status: 'success',
-      data: dichVu,
-    });
-  } catch (error) {
-    next(error);
+    res.status(200).json({ status: 'success', data: service });
+  } catch (err) {
+    next(err);
   }
 };
 
 exports.getAllDichVu = async (req, res, next) => {
   try {
     const where = { HoatDong: true };
+    const include = [
+      { model: Property, as: 'propertySpecific' },
+      {
+        model: Property,
+        as: 'appliedToProperties',
+        through: { attributes: [] },
+        include: [{ model: Landlord, as: 'landlord' }]
+      }
+    ];
+
     if (req.user.TenVaiTro === 'Chủ trọ') {
       where[Op.or] = [
         { MaNhaTro: null },
-        { '$nhaTrosApDung.MaChuTro$': req.user.MaChuTro },
+        { '$appliedToProperties.MaChuTro$': req.user.MaChuTro }
       ];
     }
 
-    const dichVus = await Service.findAll({
-      where,
-      include: [
-        { model: Property, as: 'nhaTroRieng' },
-        {
-          model: Property,
-          as: 'nhaTrosApDung',
-          through: { attributes: [] },
-          include: [{ model: ChuTro, as: 'chuTro' }],
-        },
-      ],
-    });
-
-    res.status(200).json({
-      status: 'success',
-      results: dichVus.length,
-      data: dichVus,
-    });
-  } catch (error) {
-    next(error);
+    const services = await Service.findAll({ where, include });
+    res.status(200).json({ status: 'success', results: services.length, data: services });
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -112,49 +93,34 @@ exports.updateDichVu = async (req, res, next) => {
     const { id } = req.params;
     const { TenDV, LoaiDichVu, DonViTinh, MaNhaTro, HoatDong } = req.body;
 
-    const dichVu = await Service.findByPk(id, {
-      include: [{ model: NhaTro, as: 'nhaTroRieng' }],
+    const service = await Service.findByPk(id, {
+      include: [{ model: Property, as: 'propertySpecific' }]
     });
 
-    if (!dichVu) {
-      throw new AppError('Service not found', 404);
-    }
+    if (!service) throw new AppError('Service not found', 404);
 
-    if (req.user.TenVaiTro === 'Chủ trọ' && dichVu.MaNhaTro && dichVu.nhaTroRieng.MaChuTro !== req.user.MaChuTro) {
+    if (req.user.TenVaiTro === 'Chủ trọ' && service.MaNhaTro && service.propertySpecific?.MaChuTro !== req.user.MaChuTro) {
       throw new AppError('You do not have permission to update this service', 403);
     }
 
-    const transaction = await sequelize.transaction();
+    const transaction = await Service.sequelize.transaction();
 
     try {
-      await dichVu.update(
-        { TenDV, LoaiDichVu, DonViTinh, MaNhaTro, HoatDong },
-        { transaction }
-      );
+      await service.update({ TenDV, LoaiDichVu, DonViTinh, MaNhaTro, HoatDong }, { transaction });
 
-      if (MaNhaTro && MaNhaTro !== dichVu.MaNhaTro) {
-        await NhaTro_DichVuApDung.destroy(
-          { where: { MaDV: id } },
-          { transaction }
-        );
-        await NhaTro_DichVuApDung.create(
-          { MaNhaTro, MaDV: id },
-          { transaction }
-        );
+      if (MaNhaTro && MaNhaTro !== service.MaNhaTro) {
+        await PropertyAppliedService.destroy({ where: { MaDV: id } }, { transaction });
+        await PropertyAppliedService.create({ MaNhaTro, MaDV: id }, { transaction });
       }
 
       await transaction.commit();
-
-      res.status(200).json({
-        status: 'success',
-        data: dichVu,
-      });
-    } catch (error) {
+      res.status(200).json({ status: 'success', data: service });
+    } catch (err) {
       await transaction.rollback();
-      throw error;
+      throw err;
     }
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -162,26 +128,19 @@ exports.deleteDichVu = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const dichVu = await Service.findByPk(id, {
-      include: [{ model: NhaTro, as: 'nhaTroRieng' }],
+    const service = await Service.findByPk(id, {
+      include: [{ model: Property, as: 'propertySpecific' }]
     });
 
-    if (!dichVu) {
-      throw new AppError('Service not found', 404);
-    }
+    if (!service) throw new AppError('Service not found', 404);
 
-    if (req.user.TenVaiTro === 'Chủ trọ' && dichVu.MaNhaTro && dichVu.nhaTroRieng.MaChuTro !== req.user.MaChuTro) {
+    if (req.user.TenVaiTro === 'Chủ trọ' && service.MaNhaTro && service.propertySpecific?.MaChuTro !== req.user.MaChuTro) {
       throw new AppError('You do not have permission to delete this service', 403);
     }
 
-    // Instead of deleting, set HoatDong to false
-    await dichVu.update({ HoatDong: false, NgayNgungCungCap: new Date() });
-
-    res.status(204).json({
-      status: 'success',
-      data: null,
-    });
-  } catch (error) {
-    next(error);
+    await service.update({ HoatDong: false, NgayNgungCungCap: new Date() });
+    res.status(204).json({ status: 'success', data: null });
+  } catch (err) {
+    next(err);
   }
 };

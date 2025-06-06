@@ -1,25 +1,20 @@
-const { PhuongThucThanhToan } = require('../models');
+const { PaymentMethod } = require('../models');
 const AppError = require('../utils/AppError');
 
 exports.createPhuongThucThanhToan = async (req, res, next) => {
   try {
     const { TenPTTT, MoTa, HoatDong } = req.body;
 
-    const existingPTTT = await PhuongThucThanhToan.findOne({ where: { TenPTTT } });
-    if (existingPTTT) {
-      throw new AppError('Payment method already exists', 400);
-    }
+    const exists = await PaymentMethod.findOne({ where: { TenPTTT } });
+    if (exists) throw new AppError('Payment method already exists', 400);
 
-    const phuongThucThanhToan = await PhuongThucThanhToan.create({
+    const created = await PaymentMethod.create({
       TenPTTT,
       MoTa,
       HoatDong: HoatDong !== undefined ? HoatDong : true,
     });
 
-    res.status(201).json({
-      status: 'success',
-      data: phuongThucThanhToan,
-    });
+    res.status(201).json({ status: 'success', data: created });
   } catch (error) {
     next(error);
   }
@@ -28,17 +23,10 @@ exports.createPhuongThucThanhToan = async (req, res, next) => {
 exports.getPhuongThucThanhToan = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const record = await PaymentMethod.findByPk(id);
+    if (!record) throw new AppError('Payment method not found', 404);
 
-    const phuongThucThanhToan = await PhuongThucThanhToan.findByPk(id);
-
-    if (!phuongThucThanhToan) {
-      throw new AppError('Payment method not found', 404);
-    }
-
-    res.status(200).json({
-      status: 'success',
-      data: phuongThucThanhToan,
-    });
+    res.status(200).json({ status: 'success', data: record });
   } catch (error) {
     next(error);
   }
@@ -46,15 +34,8 @@ exports.getPhuongThucThanhToan = async (req, res, next) => {
 
 exports.getAllPhuongThucThanhToan = async (req, res, next) => {
   try {
-    const phuongThucThanhToans = await PhuongThucThanhToan.findAll({
-      where: { HoatDong: true },
-    });
-
-    res.status(200).json({
-      status: 'success',
-      results: phuongThucThanhToans.length,
-      data: phuongThucThanhToans,
-    });
+    const records = await PaymentMethod.findAll({ where: { HoatDong: true } });
+    res.status(200).json({ status: 'success', results: records.length, data: records });
   } catch (error) {
     next(error);
   }
@@ -65,18 +46,11 @@ exports.updatePhuongThucThanhToan = async (req, res, next) => {
     const { id } = req.params;
     const { TenPTTT, MoTa, HoatDong } = req.body;
 
-    const phuongThucThanhToan = await PhuongThucThanhToan.findByPk(id);
+    const record = await PaymentMethod.findByPk(id);
+    if (!record) throw new AppError('Payment method not found', 404);
 
-    if (!phuongThucThanhToan) {
-      throw new AppError('Payment method not found', 404);
-    }
-
-    await phuongThucThanhToan.update({ TenPTTT, MoTa, HoatDong });
-
-    res.status(200).json({
-      status: 'success',
-      data: phuongThucThanhToan,
-    });
+    await record.update({ TenPTTT, MoTa, HoatDong });
+    res.status(200).json({ status: 'success', data: record });
   } catch (error) {
     next(error);
   }
@@ -85,19 +59,11 @@ exports.updatePhuongThucThanhToan = async (req, res, next) => {
 exports.deletePhuongThucThanhToan = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const record = await PaymentMethod.findByPk(id);
+    if (!record) throw new AppError('Payment method not found', 404);
 
-    const phuongThucThanhToan = await PhuongThucThanhToan.findByPk(id);
-
-    if (!phuongThucThanhToan) {
-      throw new AppError('Payment method not found', 404);
-    }
-
-    await phuongThucThanhToan.update({ HoatDong: false });
-
-    res.status(204).json({
-      status: 'success',
-      data: null,
-    });
+    await record.update({ HoatDong: false });
+    res.status(204).json({ status: 'success', data: null });
   } catch (error) {
     next(error);
   }

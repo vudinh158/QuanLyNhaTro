@@ -1,4 +1,4 @@
-const { ChiTietThanhToan, HoaDon } = require('../models');
+const { PaymentDetail, Invoice, PaymentMethod, Landlord, Contract, Room, Property, Occupant, Tenant } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
 
@@ -6,68 +6,69 @@ exports.createChiTietThanhToan = async (req, res, next) => {
   try {
     const { MaHoaDon, SoTien, MaPTTT, MaGiaoDich, GhiChu } = req.body;
 
-    const hoaDon = await HoaDon.findOne({
+    if (!MaHoaDon || !SoTien || !MaPTTT) {
+      throw new AppError('Missing required fields', 400);
+    }
+
+    const invoice = await Invoice.findOne({
       where: { MaHoaDon },
       include: [
         {
-          model: HopDong,
-          as: 'hopDong',
+          model: Contract,
+          as: 'contract',
           include: [
-            { model: Phong, as: 'phong', include: [{ model: NhaTro, as: 'nhaTro' }] },
-          ],
-        },
-      ],
+            {
+              model: Room,
+              as: 'room',
+              include: [{ model: Property, as: 'property' }]
+            },
+            {
+              model: Occupant,
+              as: 'occupants',
+              include: [{ model: Tenant, as: 'tenant' }]
+            }
+          ]
+        }
+      ]
     });
 
-    if (!hoaDon) {
-      throw new AppError('Invoice not found', 404);
+    if (!invoice) throw new AppError('Invoice not found', 404);
+
+    const contract = invoice.contract;
+    const room = contract?.room;
+    const property = room?.property;
+
+    if (req.user.TenVaiTro === 'Chủ trọ' && property?.MaChuTro !== req.user.MaChuTro) {
+      throw new AppError('Unauthorized to add payment for this invoice', 403);
     }
 
-    if (req.user.TenVaiTro === 'Chủ trọ' && hoaDon.hopDong.phong.nhaTro.MaChuTro !== req.user.MaChuTro) {
-      throw new AppError('You do not have permission to record payment for this invoice', 403);
-    }
+    if (SoTien <= 0) throw new AppError('Amount must be greater than 0', 400);
 
-    if (SoTien <= 0) {
-      throw new AppError('Payment amount must be greater than 0', 400);
-    }
-
-    const transaction = await sequelize.transaction();
+    const transaction = await PaymentDetail.sequelize.transaction();
 
     try {
-      const chiTietThanhToan = await ChiTietThanhToan.create(
-        {
-          MaHoaDon,
-          SoTien,
-          MaPTTT,
-          MaGiaoDich,
-          GhiChu,
-          MaNguoiNhanTK: req.user.MaChuTro,
-          NgayThanhToan: new Date(),
-        },
-        { transaction }
-      );
+      const payment = await PaymentDetail.create({
+        MaHoaDon,
+        SoTien,
+        MaPTTT,
+        MaGiaoDich,
+        GhiChu,
+        MaNguoiNhanTK: req.user.MaChuTro || null,
+        NgayThanhToan: new Date()
+      }, { transaction });
 
-      // Update HoaDon
-      hoaDon.DaThanhToan = parseFloat(hoaDon.DaThanhToan) + parseFloat(SoTien);
-      hoaDon.ConLai = parseFloat(hoaDon.TongTienPhaiTra) - parseFloat(hoaDon.DaThanhToan);
-      hoaDon.TrangThaiThanhToan =
-        hoaDon.ConLai <= 0
-          ? 'Đã thanh toán đủ'
-          : hoaDon.DaThanhToan > 0
-          ? 'Đã thanh toán một phần'
-          : 'Chưa thanh toán';
+      invoice.DaThanhToan = parseFloat(invoice.DaThanhToan) + parseFloat(SoTien);
+      invoice.ConLai = parseFloat(invoice.TongTienPhaiTra) - parseFloat(invoice.DaThanhToan);
+      invoice.TrangThaiThanhToan =
+        invoice.ConLai <= 0 ? 'Đã thanh toán đủ' : invoice.DaThanhToan > 0 ? 'Đã thanh toán một phần' : 'Chưa thanh toán';
 
-      await hoaDon.save({ transaction });
-
+      await invoice.save({ transaction });
       await transaction.commit();
 
-      res.status(201).json({
-        status: 'success',
-        data: chiTietThanhToan,
-      });
-    } catch (error) {
+      res.status(201).json({ status: 'success', data: payment });
+    } catch (err) {
       await transaction.rollback();
-      throw error;
+      next(err);
     }
   } catch (error) {
     next(error);
@@ -77,25 +78,17 @@ exports.createChiTietThanhToan = async (req, res, next) => {
 exports.getChiTietThanhToan = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const chiTietThanhToan = await ChiTietThanhToan.findByPk(id, {
+    const payment = await PaymentDetail.findByPk(id, {
       include: [
-        { model: HoaDon, as: 'hoaDon' },
-        { model: PhuongThucThanhToan, as: 'phuongThucThanhToan' },
-        { model: ChuTro, as: 'nguoiNhan' },
-      ],
+        { model: Invoice, as: 'invoice' },
+        { model: PaymentMethod, as: 'paymentMethod' },
+        { model: Landlord, as: 'receiver' }
+      ]
     });
 
-    if (!chiTietThanhToan) {
-      throw new AppError('Payment detail not found', 404);
-    }
+    if (!payment) throw new AppError('Payment detail not found', 404);
 
-    await checkHoaDonAccess(req.user, chiTietThanhToan.hoaDon);
-
-    res.status(200).json({
-      status: 'success',
-      data: chiTietThanhToan,
-    });
+    res.status(200).json({ status: 'success', data: payment });
   } catch (error) {
     next(error);
   }
@@ -108,45 +101,32 @@ exports.getAllChiTietThanhToan = async (req, res, next) => {
 
     if (MaHoaDon) {
       where.MaHoaDon = MaHoaDon;
-      const hoaDon = await HoaDon.findByPk(MaHoaDon);
-      if (!hoaDon) throw new AppError('Invoice not found', 404);
-      await checkHoaDonAccess(req.user, hoaDon);
-    } else if (req.user.TenVaiTro === 'Chủ trọ') {
-      where['$hoaDon.hopDong.phong.nhaTro.MaChuTro$'] = req.user.MaChuTro;
-    } else if (req.user.TenVaiTro === 'Khách thuê') {
-      where['$hoaDon.hopDong.nguoiOCungs.MaKhachThue$'] = req.user.MaKhachThue;
     }
 
-    const chiTietThanhToans = await ChiTietThanhToan.findAll({
+    const payments = await PaymentDetail.findAll({
       where,
       include: [
         {
-          model: HoaDon,
-          as: 'hoaDon',
+          model: Invoice,
+          as: 'invoice',
           include: [
             {
-              model: HopDong,
-              as: 'hopDong',
+              model: Contract,
+              as: 'contract',
               include: [
-                { model: Phong, as: 'phong', include: [{ model: NhaTro, as: 'nhaTro' }] },
-                { model: NguoiOCung, as: 'nguoiOCungs' },
-              ],
-            },
-          ],
+                { model: Room, as: 'room', include: [{ model: Property, as: 'property' }] },
+                { model: Occupant, as: 'occupants', include: [{ model: Tenant, as: 'tenant' }] }
+              ]
+            }
+          ]
         },
-        { model: PhuongThucThanhToan, as: 'phuongThucThanhToan' },
-        { model: ChuTro, as: 'nguoiNhan' },
-      ],
+        { model: PaymentMethod, as: 'paymentMethod' },
+        { model: Landlord, as: 'receiver' }
+      ]
     });
 
-    res.status(200).json({
-      status: 'success',
-      results: chiTietThanhToans.length,
-      data: chiTietThanhToans,
-    });
+    res.status(200).json({ status: 'success', results: payments.length, data: payments });
   } catch (error) {
     next(error);
   }
 };
-
-// No update/delete for ChiTietThanhToan as per requirements (immutable after creation)
