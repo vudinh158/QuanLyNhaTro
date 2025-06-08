@@ -10,13 +10,17 @@ router.get('/types', restrictTo('room:create', 'room:update_property_own'), room
 
 router.get('/property/:propertyId', restrictTo('room:read_property_own'), roomController.getRoomsByProperty);
 
+router.get('/available-for-contract', restrictTo('contract:create'), roomController.getAvailableRooms);
+
 router.route('/:id')
   .get(restrictTo('room:read_property_own'), roomController.getRoomById)
   .patch(restrictTo('room:update_property_own'), roomController.updateRoom)
   .delete(restrictTo('room:delete_property_own'), roomController.deleteRoom);
 
 router.route('/')
-  .post(restrictTo('room:create'), roomController.createRoom);
+    .post(restrictTo('room:create'), roomController.createRoom);
+
+
 
 
 module.exports = router;

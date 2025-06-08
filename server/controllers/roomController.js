@@ -89,3 +89,15 @@ exports.getAllRoomTypes = catchAsync(async (req, res, next) => {
         }
     });
 });
+
+exports.getAvailableRooms = catchAsync(async (req, res, next) => {
+    if (!req.user || !req.user.MaChuTro) {
+      return next(new AppError('Không tìm thấy thông tin chủ trọ.', 401));
+    }
+    const rooms = await roomService.getAvailableRoomsForContract(req.user.MaChuTro);
+    res.status(200).json({
+      status: 'success',
+      results: rooms.length,
+      data: { rooms },
+    });
+  });

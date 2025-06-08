@@ -1,14 +1,6 @@
 import axiosInstance from '@/lib/axios';
 import type { Room, RoomType, NewRoomData, UpdateRoomData } from '@/types/room';
-
-interface ApiResponse<T> {
-  status: string;
-  results?: number;
-  data: {
-    [key: string]: T | T[] | any;
-  };
-  message?: string;
-}
+import type { ApiResponse } from '@/types/api';
 
 export const getAllRoomTypes = async (): Promise<RoomType[]> => {
   try {
@@ -67,4 +59,14 @@ export const deleteRoom = async (roomId: number): Promise<void> => {
     console.error(`Error deleting room ${roomId}:`, error);
     throw new Error(error.response?.data?.message || error.message || 'Không thể xóa phòng.');
   }
+};
+
+export const getAvailableRoomsForContract = async (): Promise<Room[]> => {
+    try {
+        const response = await axiosInstance.get<ApiResponse<{ rooms: Room[] }>>('/rooms/available-for-contract');
+        return response.data.data.rooms;
+    } catch (error: any) {
+        console.error("Error fetching available rooms:", error);
+        throw new Error(error.response?.data?.message || 'Không thể tải danh sách phòng có sẵn.');
+    }
 };

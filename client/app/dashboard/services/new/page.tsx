@@ -31,7 +31,8 @@ export default function NewServicePage() {
       const res = await fetch("http://localhost:5000/api/dich-vu", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("authToken") || ""}`,
         },
         body: JSON.stringify({
           TenDV: tenDV,
@@ -64,7 +65,7 @@ export default function NewServicePage() {
   }
 
   return (
-    <DashboardLayout>
+    // <DashboardLayout>
       <div className="mx-auto max-w-2xl">
         <h1 className="text-2xl font-bold tracking-tight mb-6">Thêm dịch vụ mới</h1>
 
@@ -135,6 +136,6 @@ export default function NewServicePage() {
           </Card>
         </form>
       </div>
-    </DashboardLayout>
+    // </DashboardLayout>
   )
 }

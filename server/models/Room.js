@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
     TrangThai: {
-      type: DataTypes.ENUM('Còn trống', 'Đang thuê', 'Đang sửa chữa', 'Khác'),
+      type: DataTypes.ENUM('Còn trống', 'Đang thuê', 'Đang sửa chữa', 'Đặt cọc'),
       allowNull: false,
       defaultValue: 'Còn trống',
     },

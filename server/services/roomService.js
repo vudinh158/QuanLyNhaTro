@@ -147,6 +147,23 @@ const getAllRoomTypes = async () => {
   return RoomType.findAll({ order: [['TenLoai', 'ASC']] });
 };
 
+const getAvailableRoomsForContract = async (maChuTro) => {
+    const properties = await Property.findAll({ where: { MaChuTro: maChuTro }, attributes: ['MaNhaTro'] });
+    const propertyIds = properties.map(p => p.MaNhaTro);
+    if (propertyIds.length === 0) return [];
+  
+    return Room.findAll({
+      where: {
+        MaNhaTro: { [Op.in]: propertyIds },
+        TrangThai: { [Op.in]: ['Còn trống', 'Đặt cọc'] }
+      },
+      include: [
+        { model: RoomType, as: 'roomType', attributes: ['TenLoai', 'Gia'] },
+        { model: Property, as: 'property', attributes: ['TenNhaTro'] }
+      ],
+      order: [['MaNhaTro', 'ASC'], ['TenPhong', 'ASC']]
+    });
+  };
 
 module.exports = {
   getRoomsByPropertyIdForLandlord,
@@ -154,5 +171,6 @@ module.exports = {
   createRoom,
   updateRoom,
   deleteRoom,
-  getAllRoomTypes,
+    getAllRoomTypes,
+    getAvailableRoomsForContract
 };

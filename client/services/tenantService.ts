@@ -1,15 +1,7 @@
 // apps/client-nextjs/services/tenantService.ts
 import axiosInstance from '@/lib/axios';
 import type { Tenant, NewTenantData, UpdateTenantData } from '@/types/tenant';
-
-interface ApiResponse<T> {
-  status: string;
-  results?: number;
-  data: {
-    [key: string]: T | T[] | any;
-  };
-  message?: string;
-}
+import type { ApiResponse } from '@/types/api';
 
 // Lấy danh sách khách thuê (chủ trọ sẽ thấy khách thuê liên quan đến họ)
 export const getAllTenantsForLandlord = async (queryParams?: { search?: string, status?: string }): Promise<Tenant[]> => {

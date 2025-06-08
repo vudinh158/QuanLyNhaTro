@@ -1,14 +1,6 @@
 import axiosInstance from '@/lib/axios';
 import type { Property, NewPropertyData, UpdatePropertyData } from '@/types/property';
-
-interface ApiResponse<T> {
-  status: string;
-  results?: number;
-  data: {
-    [key: string]: T | T[];
-  };
-  message?: string;
-}
+import type { ApiResponse } from '@/types/api';
 
 export const getMyProperties = async (): Promise<Property[]> => {
   try {
