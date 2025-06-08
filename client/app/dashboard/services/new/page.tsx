@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import DashboardLayout from "@/components/dashboard/dashboard-layout"
@@ -23,15 +22,45 @@ export default function NewServicePage() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate creating a new service
-    setTimeout(() => {
-      setIsSubmitting(false)
+    const tenDV = (document.getElementById("name") as HTMLInputElement).value
+    const donGia = Number((document.getElementById("price") as HTMLInputElement).value)
+    const loaiDichVu = serviceType
+    const donViTinh = (document.getElementById("unit") as HTMLInputElement).value || null
+
+    try {
+      const res = await fetch("http://localhost:5000/api/dich-vu", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          TenDV: tenDV,
+          DonGia: donGia,
+          LoaiDichVu: loaiDichVu,
+          DonViTinh: donViTinh,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.message || "Tạo dịch vụ thất bại")
+      }
+
       toast({
         title: "Tạo dịch vụ thành công",
         description: "Dịch vụ mới đã được thêm vào hệ thống",
       })
+
       router.push("/dashboard/services")
-    }, 1500)
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Đã xảy ra lỗi khi tạo dịch vụ",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -84,8 +113,8 @@ export default function NewServicePage() {
                     serviceType === "monthly"
                       ? "Ví dụ: tháng"
                       : serviceType === "usage"
-                        ? "Ví dụ: kg, lần, giờ"
-                        : "Ví dụ: lần"
+                      ? "Ví dụ: kg, lần, giờ"
+                      : "Ví dụ: lần"
                   }
                 />
               </div>
