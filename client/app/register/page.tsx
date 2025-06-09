@@ -28,6 +28,37 @@ export default function RegisterPage() {
   // Chung
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+  const [errors, setErrors] = useState<Record<string,string>>({});
+
+  function validateForm() {
+  const newErrors: Record<string,string> = {};
+  if (!tenDangNhap || tenDangNhap.trim().length < 4) {
+    newErrors.tenDangNhap = 'Tên đăng nhập tối thiểu 4 ký tự';
+  }
+  if (!hoTen || hoTen.trim() === '') {
+    newErrors.hoTen = 'Họ và tên không được để trống';
+  }
+  if (!matKhau || matKhau.length < 6) {
+    newErrors.matKhau = 'Mật khẩu tối thiểu 6 ký tự';
+  }
+  if (matKhau !== confirmPassword) {
+    newErrors.confirmPassword = 'Xác nhận mật khẩu không khớp';
+  }
+  if (!/^[0-9]{10}$/.test(soDienThoai)) {
+    newErrors.soDienThoai = 'Số điện thoại phải gồm 10 chữ số';
+  }
+  if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+    newErrors.email = 'Email không hợp lệ';
+  }
+  if (cccd && !/^[0-9]{12}$/.test(cccd)) {
+    newErrors.cccd = 'CCCD phải gồm 12 chữ số';
+  }
+  if (!gioiTinh) {
+    newErrors.gioiTinh = 'Vui lòng chọn giới tính';
+  }
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+}
 
   // Form chủ trọ
   const [tenDangNhap, setTenDangNhap] = useState("");
