@@ -1,268 +1,140 @@
-import DashboardLayout from "@/components/dashboard/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { AlertCircle, Bell, FileText, Wallet, Zap, ShoppingBag } from "lucide-react"
-import Link from "next/link"
+// file: client/app/tenant/dashboard/page.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter} from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Home, FileText, Wallet, Bell, Calendar, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+
+import { getTenantDashboardSummary } from '@/services/dashboardService';
+import { ITenantDashboardSummary } from '@/types/dashboard';
 
 export default function TenantDashboardPage() {
-  return (
-    <DashboardLayout userRole="tenant">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Tổng quan</h1>
-        </div>
+    const { user } = useAuth();
+    const [summary, setSummary] = useState<ITenantDashboardSummary | null>(null);
+    const [loading, setLoading] = useState(true);
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Thông tin phòng thuê</CardTitle>
-            <CardDescription>Thông tin về phòng và hợp đồng thuê hiện tại</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-medium">Thông tin phòng</h3>
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Phòng:</span>
-                      <span>P101 - Nhà trọ Minh Tâm</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Loại phòng:</span>
-                      <span>Phòng đơn</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Diện tích:</span>
-                      <span>20m²</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-medium">Người ở cùng</h3>
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Số người:</span>
-                      <span>2 người</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Người đại diện:</span>
-                      <span>Nguyễn Văn B (Bạn)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Người ở cùng:</span>
-                      <span>Phạm Thị E</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-medium">Thông tin hợp đồng</h3>
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Mã hợp đồng:</span>
-                      <span>HD001</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ngày bắt đầu:</span>
-                      <span>01/01/2025</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ngày kết thúc:</span>
-                      <span>15/05/2025</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tiền thuê:</span>
-                      <span>2,500,000 VNĐ/tháng</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tiền cọc:</span>
-                      <span>5,000,000 VNĐ</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+    useEffect(() => {
+        getTenantDashboardSummary()
+            .then(setSummary)
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, []);
+    console.log(user);
+    const displayName = user?.khachThueProfile?.HoTen || user?.TenDangNhap;
+
+    if (loading) {
+        return <DashboardSkeleton />;
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="space-y-1">
+                <h1 className="text-2xl font-bold tracking-tight">Chào mừng trở lại, {displayName}!</h1>
+                <p className="text-muted-foreground">Đây là thông tin tổng quan về việc thuê trọ của bạn.</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Tabs defaultValue="bills">
-          <TabsList>
-            <TabsTrigger value="bills">Hóa đơn gần đây</TabsTrigger>
-            <TabsTrigger value="notifications">Thông báo</TabsTrigger>
-          </TabsList>
-          <TabsContent value="bills" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Hóa đơn gần đây</CardTitle>
-                <CardDescription>Danh sách các hóa đơn gần đây của bạn</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {[
-                    {
-                      id: "HĐ001",
-                      period: "01/04/2025 - 30/04/2025",
-                      amount: "3,250,000 VNĐ",
-                      dueDate: "10/05/2025",
-                      status: "Chưa thanh toán",
-                      isOverdue: false,
-                    },
-                    {
-                      id: "HĐ005",
-                      period: "01/03/2025 - 31/03/2025",
-                      amount: "3,150,000 VNĐ",
-                      dueDate: "10/04/2025",
-                      status: "Đã thanh toán",
-                      isOverdue: false,
-                    },
-                    {
-                      id: "HĐ009",
-                      period: "01/02/2025 - 28/02/2025",
-                      amount: "3,100,000 VNĐ",
-                      dueDate: "10/03/2025",
-                      status: "Đã thanh toán",
-                      isOverdue: false,
-                    },
-                  ].map((bill) => (
-                    <div key={bill.id} className="flex items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">
-                            {bill.id} - Kỳ: {bill.period}
-                          </p>
-                          {bill.isOverdue && (
-                            <span className="flex items-center text-xs text-red-500">
-                              <AlertCircle className="mr-1 h-3 w-3" />
-                              Quá hạn
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Số tiền: {bill.amount} - Hạn: {bill.dueDate}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/tenant/bills/${bill.id}`}>Xem chi tiết</Link>
-                        </Button>
-                        {bill.status === "Chưa thanh toán" && (
-                          <Button size="sm" asChild>
-                            <Link href={`/tenant/bills/${bill.id}/payment`}>Thanh toán</Link>
-                          </Button>
+            
+            <div className="grid gap-6 md:grid-cols-2">
+                {/* Card thông tin thuê trọ */}
+                <Card className="flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Home /> Thông tin Thuê trọ</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-3">
+                        {summary?.activeContract ? (
+                            <>
+                                <p><strong>Nhà trọ:</strong> {summary.activeContract.room?.property?.TenNhaTro}</p>
+                                <p><strong>Phòng:</strong> {summary.activeContract.room?.TenPhong}</p>
+                                <p className="flex items-center gap-2 pt-2">
+                                    <Calendar className="h-4 w-4" /> 
+                                    <span>Hợp đồng hết hạn vào: <strong>{format(new Date(summary.activeContract.NgayKetThuc), 'dd/MM/yyyy')}</strong></span>
+                                </p>
+                            </>
+                        ) : (
+                            <p className="text-muted-foreground">Bạn hiện không có hợp đồng nào đang hiệu lực.</p>
                         )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="notifications" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Thông báo gần đây</CardTitle>
-                <CardDescription>Các thông báo mới nhất từ chủ trọ</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {[
-                    { id: 1, title: "Thông báo tăng giá điện", sender: "Admin", time: "2 giờ trước" },
-                    { id: 2, title: "Thông báo bảo trì hệ thống điện", sender: "Admin", time: "5 ngày trước" },
-                    { id: 3, title: "Nhắc nhở thanh toán hóa đơn", sender: "Hệ thống", time: "1 tuần trước" },
-                  ].map((notification) => (
-                    <div key={notification.id} className="flex items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-1">
-                        <p className="font-medium">{notification.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Từ: {notification.sender} - {notification.time}
-                        </p>
-                      </div>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/tenant/notifications/${notification.id}`}>Xem</Link>
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    </CardContent>
+                    <CardFooter>
+                        {summary?.activeContract && (
+                            <Button asChild variant="secondary" size="sm">
+                                <Link href={`/tenant/contracts/${summary.activeContract.MaHopDong}`}>Xem chi tiết hợp đồng</Link>
+                            </Button>
+                        )}
+                    </CardFooter>
+                </Card>
 
-        <div className="grid gap-4 md:grid-cols-5">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Hợp đồng</CardTitle>
-              <CardDescription>Xem thông tin hợp đồng</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex justify-center py-4">
-                <FileText className="h-12 w-12 text-primary/80" />
-              </div>
-              <Button className="w-full" asChild>
-                <Link href="/tenant/contracts">Xem hợp đồng</Link>
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Hóa đơn</CardTitle>
-              <CardDescription>Quản lý hóa đơn và thanh toán</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex justify-center py-4">
-                <Wallet className="h-12 w-12 text-primary/80" />
-              </div>
-              <Button className="w-full" asChild>
-                <Link href="/tenant/bills">Xem tất cả hóa đơn</Link>
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Điện nước</CardTitle>
-              <CardDescription>Xem chỉ số điện nước</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex justify-center py-4">
-                <Zap className="h-12 w-12 text-primary/80" />
-              </div>
-              <Button className="w-full" asChild>
-                <Link href="/tenant/utilities">Xem điện nước</Link>
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Dịch vụ</CardTitle>
-              <CardDescription>Xem dịch vụ đã sử dụng</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex justify-center py-4">
-                <ShoppingBag className="h-12 w-12 text-primary/80" />
-              </div>
-              <Button className="w-full" asChild>
-                <Link href="/tenant/services">Xem dịch vụ</Link>
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Thông báo</CardTitle>
-              <CardDescription>Xem thông báo từ chủ trọ</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex justify-center py-4">
-                <Bell className="h-12 w-12 text-primary/80" />
-              </div>
-              <Button className="w-full" asChild>
-                <Link href="/tenant/notifications">Xem thông báo</Link>
-              </Button>
-            </CardContent>
-          </Card>
+                {/* Card hóa đơn cần thanh toán */}
+                <Card className="flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-amber-600"><Wallet /> Hóa đơn sắp tới</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-3">
+                         {summary?.nextUnpaidInvoice ? (
+                            <>
+                                <p className="text-3xl font-bold text-amber-600">
+                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(summary.nextUnpaidInvoice.TongTienPhaiTra)}
+                                </p>
+                                <p className="flex items-center gap-2 text-muted-foreground">
+                                    <AlertTriangle className="h-4 w-4" /> 
+                                    <span>Cần thanh toán trước ngày: <strong>{format(new Date(summary.nextUnpaidInvoice.NgayHanThanhToan), 'dd/MM/yyyy')}</strong></span>
+                                </p>
+                            </>
+                        ) : (
+                            <p className="text-muted-foreground">Không có hóa đơn nào cần thanh toán.</p>
+                        )}
+                    </CardContent>
+                     <CardFooter>
+                        {summary?.nextUnpaidInvoice && (
+                            <Button asChild variant="default" size="sm">
+                                <Link href={`/tenant/bills/${summary.nextUnpaidInvoice.MaHoaDon}`}>Xem hóa đơn & Thanh toán</Link>
+                            </Button>
+                        )}
+                    </CardFooter>
+                </Card>
+            </div>
+
+            {/* Card thông báo gần đây */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Bell /> Thông báo gần đây</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {summary?.recentNotifications && summary.recentNotifications.length > 0 ? (
+                        summary.recentNotifications.map(item => (
+                            <div key={item.MaThongBao} className="flex items-center">
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold">{item.notification.TieuDe}</p>
+                                    <p className="text-sm text-muted-foreground line-clamp-1">{item.notification.NoiDung}</p>
+                                </div>
+                                <Button variant="ghost" size="sm" asChild className="ml-auto">
+                                    <Link href="/tenant/notifications">Chi tiết</Link>
+                                </Button>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-sm text-muted-foreground">Bạn không có thông báo mới nào.</p>
+                    )}
+                </CardContent>
+            </Card>
         </div>
-      </div>
-    </DashboardLayout>
-  )
+    );
 }
+
+const DashboardSkeleton = () => (
+    <div className="space-y-6">
+        <div className="space-y-2">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-4 w-2/3" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+            <Skeleton className="h-56 w-full" />
+            <Skeleton className="h-56 w-full" />
+        </div>
+        <Skeleton className="h-48 w-full" />
+    </div>
+);

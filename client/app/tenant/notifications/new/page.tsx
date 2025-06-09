@@ -1,120 +1,126 @@
-"use client"
+// file: client/app/tenant/notifications/new/page.tsx
+'use client';
 
-import type React from "react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
-import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import DashboardLayout from "@/components/dashboard/dashboard-layout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2, ArrowLeft } from "lucide-react";
+import Link from 'next/link';
 
-export default function NewNotificationPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { toast } = useToast()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const replyTo = searchParams.get("reply")
+import { createNotification } from "@/services/notificationService";
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+const sendNotificationSchema = z.object({
+  TieuDe: z.string().min(1, { message: "Tiêu đề không được để trống." }),
+  NoiDung: z.string().min(1, { message: "Nội dung không được để trống." }),
+});
 
-    // Giả lập gửi thông báo thành công
-    setTimeout(() => {
-      setIsSubmitting(false)
+type FormValues = z.infer<typeof sendNotificationSchema>;
+
+export default function TenantSendNotificationPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(sendNotificationSchema),
+  });
+
+  const onSubmit = async (data: FormValues) => {
+    setIsLoading(true);
+    try {
+      // Backend sẽ tự động xác định người nhận là chủ trọ của người gửi
+      await createNotification({
+        ...data,
+        LoaiNguoiNhan: 'Chủ trọ',
+      });
+
       toast({
-        title: "Gửi yêu cầu thành công",
-        description: "Yêu cầu của bạn đã được gửi đến chủ trọ",
-      })
-      router.push("/tenant/notifications")
-    }, 1500)
-  }
+        title: "Gửi thành công",
+        description: "Thông báo của bạn đã được gửi đến chủ trọ.",
+      });
+
+      router.push("/tenant/notifications");
+      router.refresh();
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể gửi thông báo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <DashboardLayout userRole="tenant">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-bold tracking-tight mb-6">Gửi yêu cầu mới</h1>
-
-        <form onSubmit={handleSubmit}>
+    <div className="space-y-6">
+       <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/tenant/notifications">
+                    <ArrowLeft className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="text-2xl font-bold">Gửi thông báo đến Chủ trọ</h1>
+        </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <Card>
             <CardHeader>
-              <CardTitle>Thông tin yêu cầu</CardTitle>
-              <CardDescription>Nhập thông tin chi tiết về yêu cầu của bạn</CardDescription>
+              <CardTitle>Soạn thông báo</CardTitle>
+              <CardDescription>
+                Nội dung sẽ được gửi trực tiếp đến chủ trọ quản lý phòng của bạn.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="recipient">
-                  Người nhận <span className="text-red-500">*</span>
-                </Label>
-                <Select defaultValue="admin" required>
-                  <SelectTrigger id="recipient">
-                    <SelectValue placeholder="Chọn người nhận" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Chủ trọ</SelectItem>
-                    <SelectItem value="manager">Quản lý</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="type">
-                  Loại yêu cầu <span className="text-red-500">*</span>
-                </Label>
-                <Select defaultValue={replyTo ? "reply" : "repair"} required>
-                  <SelectTrigger id="type">
-                    <SelectValue placeholder="Chọn loại yêu cầu" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="repair">Sửa chữa</SelectItem>
-                    <SelectItem value="complaint">Khiếu nại</SelectItem>
-                    <SelectItem value="question">Câu hỏi</SelectItem>
-                    <SelectItem value="suggestion">Đề xuất</SelectItem>
-                    <SelectItem value="reply">Phản hồi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="title">
-                  Tiêu đề <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="title"
-                  placeholder="Nhập tiêu đề yêu cầu"
-                  required
-                  defaultValue={replyTo ? "Phản hồi: Thông báo tăng giá điện" : ""}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="content">
-                  Nội dung <span className="text-red-500">*</span>
-                </Label>
-                <Textarea
-                  id="content"
-                  placeholder="Nhập nội dung chi tiết yêu cầu của bạn"
-                  className="min-h-[150px]"
-                  required
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="TieuDe"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tiêu đề</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ví dụ: Báo hỏng vòi nước, Cần gia hạn hợp đồng..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="NoiDung"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nội dung chi tiết</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Vui lòng mô tả chi tiết vấn đề hoặc yêu cầu của bạn..."
+                        rows={8}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button type="button" variant="outline" onClick={() => router.push("/tenant/notifications")}>
-                Hủy
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
+            <CardFooter className="flex justify-end">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Gửi
               </Button>
             </CardFooter>
           </Card>
         </form>
-      </div>
-    </DashboardLayout>
-  )
+      </Form>
+    </div>
+  );
 }

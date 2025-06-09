@@ -56,19 +56,8 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       field: 'TongTienPhaiTra'
     },
-    DaThanhToan: {
-      type: DataTypes.DECIMAL(12, 2),
-      allowNull: false,
-      defaultValue: 0,
-      field: 'DaThanhToan'
-    },
-    ConLai: {
-      type: DataTypes.DECIMAL(12, 2),
-      allowNull: false,
-      field: 'ConLai'
-    },
     TrangThaiThanhToan: {
-      type: DataTypes.ENUM('Chưa thanh toán', 'Đã thanh toán một phần', 'Đã thanh toán đủ', 'Quá hạn'),
+      type: DataTypes.ENUM('Chưa thanh toán', 'Đã thanh toán', 'Quá hạn'),
       allowNull: false,
       defaultValue: 'Chưa thanh toán',
       field: 'TrangThaiThanhToan'

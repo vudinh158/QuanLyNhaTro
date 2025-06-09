@@ -1,29 +1,13 @@
-import type React from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import { Inter } from "next/font/google"
-import "../globals.css"
+// file: client/app/tenant/layout.tsx
+"use client";
 
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata = {
-  title: "Hệ Thống Quản Lý Nhà Trọ - Khách Thuê",
-  description: "Quản lý thông tin thuê phòng",
-}
+import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import type React from "react";
 
 export default function TenantLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  return (
-    <html lang="vi" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-          <Toaster />
-        </ThemeProvider>
-      </body>
-    </html>
-  )
+  return <DashboardLayout>{children}</DashboardLayout>;
 }

@@ -1,180 +1,107 @@
-"use client"
+'use client';
 
-import { useRouter } from "next/navigation"
-import DashboardLayout from "@/components/dashboard/dashboard-layout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Printer } from "lucide-react"
-import Link from "next/link"
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { getContractById } from '@/services/contractService';
+import { IContract } from '@/types/contract';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { User, Home, FileText, Calendar, CircleDollarSign, CheckCircle, Tag, Users, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
-export default function TenantContractDetailsPage({ params }: { params: { id: string } }) {
-  const router = useRouter()
+const DetailItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: React.ReactNode }) => (
+    <div className="flex items-start space-x-4 py-2">
+        <div className="text-muted-foreground mt-1">{icon}</div>
+        <div className="flex-1"><p className="text-sm text-muted-foreground">{label}</p><p className="text-md font-semibold">{value}</p></div>
+    </div>
+);
 
-  // Giả lập dữ liệu hợp đồng
-  const contract = {
-    id: params.id,
-    roomId: "1",
-    room: "P101",
-    property: "Nhà trọ Minh Tâm",
-    tenantId: "1",
-    tenant: "Nguyễn Văn B",
-    startDate: "01/01/2025",
-    endDate: "15/05/2025",
-    rent: "2,500,000 VNĐ/tháng",
-    deposit: "5,000,000 VNĐ",
-    paymentDue: 10,
-    status: "active",
-    note: "Hợp đồng thuê phòng đơn",
-    createdAt: "01/01/2025",
-    landlord: "Nguyễn Văn A",
-    landlordPhone: "0987654321",
-    landlordEmail: "nguyenvana@example.com",
-  }
+export default function TenantContractDetailPage() {
+    const params = useParams();
+    const router = useRouter();
+    const id = Number(params.id);
+    const [contract, setContract] = useState<IContract | null>(null);
+    const [loading, setLoading] = useState(true);
 
-  const handlePrint = () => {
-    window.print()
-  }
+    useEffect(() => {
+        if (id) {
+            setLoading(true);
+            getContractById(id)
+                .then(setContract)
+                .catch(err => {
+                    console.error(err);
+                    // Có thể thêm toast báo lỗi ở đây
+                    router.push('/tenant/contracts'); // Nếu lỗi, quay về trang danh sách
+                })
+                .finally(() => setLoading(false));
+        }
+    }, [id, router]);
 
-  return (
-    <DashboardLayout userRole="tenant">
-      <div className="mx-auto max-w-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" asChild>
-              <Link href="/tenant/contracts">
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-            <h1 className="text-2xl font-bold tracking-tight">Chi tiết hợp đồng</h1>
-          </div>
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" />
-            In hợp đồng
-          </Button>
+    const getStatusBadgeVariant = (status: IContract['TrangThai']) => {
+        const variants = {
+            'Có hiệu lực': 'success', 'Mới tạo': 'secondary',
+            'Hết hiệu lực': 'outline', 'Đã thanh lý': 'destructive',
+        } as const;
+        return variants[status] || 'default';
+    }
+
+    if (loading) {
+        return <Skeleton className="h-[500px] w-full" />;
+    }
+    if (!contract) {
+        return <div className="text-center py-10">Không tìm thấy hợp đồng hoặc bạn không có quyền xem.</div>;
+    }
+
+    const representative = contract.occupants.find(o => o.LaNguoiDaiDien)?.tenant;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" onClick={() => router.back()}><ArrowLeft className="h-4 w-4" /></Button>
+                <h1 className="text-2xl font-bold">Chi tiết Hợp đồng #{contract.MaHopDong}</h1>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Thông tin chính</CardTitle></CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DetailItem icon={<FileText size={20} />} label="Trạng thái" value={<Badge variant={getStatusBadgeVariant(contract.TrangThai)}>{contract.TrangThai}</Badge>} />
+                            <DetailItem icon={<Home size={20} />} label="Phòng" value={`${contract.room.TenPhong} - ${contract.room.property?.TenNhaTro}`} />
+                            <DetailItem icon={<User size={20} />} label="Người đại diện" value={representative?.HoTen || 'N/A'} />
+                            <DetailItem icon={<Calendar size={20} />} label="Thời hạn" value={`${format(new Date(contract.NgayBatDau), 'dd/MM/yyyy')} - ${format(new Date(contract.NgayKetThuc), 'dd/MM/yyyy')}`} />
+                            <DetailItem icon={<CircleDollarSign size={20} />} label="Tiền thuê" value={`${contract.TienThueThoaThuan.toLocaleString()} VNĐ`} />
+                            <DetailItem icon={<CircleDollarSign size={20} />} label="Tiền cọc" value={`${contract.TienCoc.toLocaleString()} VNĐ`} />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle><Users className="inline-block mr-2 h-5 w-5"/>Những người ở cùng</CardTitle></CardHeader>
+                        <CardContent>
+                           {contract.occupants.map((occ, index) => (
+                               <div key={occ.MaNguoiOCung}>
+                                   <div className="flex justify-between items-center py-3">
+                                        <p className="font-semibold">{occ.tenant.HoTen}</p>
+                                       {occ.LaNguoiDaiDien && <Badge>Người đại diện</Badge>}
+                                   </div>
+                                   {index < contract.occupants.length - 1 && <Separator />}
+                               </div>
+                           ))}
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle><Tag className="inline-block mr-2 h-5 w-5"/>Dịch vụ đã đăng ký</CardTitle></CardHeader>
+                        <CardContent>
+                            {contract.registeredServices.length > 0 ? contract.registeredServices.map(service => (
+                                <div key={service.MaDV} className="flex items-center py-1">{service.TenDV}</div>
+                            )) : <p className="text-sm text-muted-foreground">Không có.</p>}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Hợp đồng thuê phòng {contract.id}</CardTitle>
-                <CardDescription>Ngày tạo: {contract.createdAt}</CardDescription>
-              </div>
-              <Badge variant={contract.status === "active" ? "default" : "secondary"}>
-                {contract.status === "active" ? "Có hiệu lực" : "Hết hạn"}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-medium mb-2">Thông tin phòng</h3>
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Phòng:</span>
-                      <span>{contract.room}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Nhà trọ:</span>
-                      <span>{contract.property}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-medium mb-2">Thông tin người thuê</h3>
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Người thuê:</span>
-                      <span>{contract.tenant}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-medium mb-2">Thông tin chủ trọ</h3>
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Chủ trọ:</span>
-                      <span>{contract.landlord}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Số điện thoại:</span>
-                      <span>{contract.landlordPhone}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Email:</span>
-                      <span>{contract.landlordEmail}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-medium mb-2">Thông tin hợp đồng</h3>
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Thời hạn:</span>
-                      <span>
-                        {contract.startDate} - {contract.endDate}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tiền thuê:</span>
-                      <span>{contract.rent}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tiền cọc:</span>
-                      <span>{contract.deposit}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ngày thanh toán hàng tháng:</span>
-                      <span>Ngày {contract.paymentDue}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-medium mb-2">Ghi chú</h3>
-                  <p className="text-sm">{contract.note}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <h3 className="font-medium mb-2">Điều khoản và điều kiện</h3>
-              <div className="text-sm space-y-2">
-                <p>
-                  1. Hợp đồng có hiệu lực kể từ ngày {contract.startDate} đến ngày {contract.endDate}.
-                </p>
-                <p>2. Tiền thuê phòng được thanh toán vào ngày {contract.paymentDue} hàng tháng.</p>
-                <p>3. Tiền cọc sẽ được hoàn trả khi kết thúc hợp đồng nếu không có hư hỏng tài sản.</p>
-                <p>4. Người thuê phải thông báo trước 30 ngày nếu muốn chấm dứt hợp đồng sớm.</p>
-                <p>5. Chủ trọ có quyền chấm dứt hợp đồng nếu người thuê vi phạm các điều khoản.</p>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <h3 className="font-medium mb-2">Chữ ký</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground mb-2">Chủ trọ:</p>
-                  <p>{contract.landlord}</p>
-                  <p className="mt-8 text-muted-foreground">Ngày: {contract.createdAt}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground mb-2">Người thuê:</p>
-                  <p>{contract.tenant}</p>
-                  <p className="mt-8 text-muted-foreground">Ngày: {contract.createdAt}</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
-  )
+    );
 }

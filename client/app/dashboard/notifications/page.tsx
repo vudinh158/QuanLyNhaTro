@@ -1,177 +1,141 @@
-import DashboardLayout from "@/components/dashboard/dashboard-layout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bell, Plus, Search } from "lucide-react"
-import Link from "next/link"
+// file: client/app/dashboard/notifications/page.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Bell, PlusCircle } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
+
+import { getMyNotifications, markAsRead } from '@/services/notificationService';
+import { INotification } from '@/types/notification'; 
+import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+} from '@/components/ui/alert-dialog';
 
 export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<INotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedNotification, setSelectedNotification] = useState<INotification | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // API getMyNotifications giờ trả về INotification[] với isRead được tính sẵn
+    getMyNotifications()
+      .then(setNotifications)
+      .catch(() => toast({ title: "Lỗi", description: "Không thể tải danh sách thông báo.", variant: "destructive" }))
+      .finally(() => setLoading(false));
+  }, [toast]);
+  
+  const handleNotificationClick = async (item: INotification) => {
+    setSelectedNotification(item);
+    // Nếu thông báo chưa đọc, gọi API để đánh dấu đã đọc
+    if (!item.isRead) {
+      try {
+        await markAsRead(item.MaThongBao);
+        // Cập nhật lại trạng thái trên UI mà không cần gọi lại API
+        setNotifications(prev => 
+          prev.map(n => n.MaThongBao === item.MaThongBao ? { ...n, isRead: true } : n)
+        );
+      } catch (error) {
+        console.error("Failed to mark as read", error);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-36" />
+        </div>
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    );
+  }
+
   return (
-    <DashboardLayout>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Thông báo</h1>
+    <>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Thông báo</h1>
           <Button asChild>
             <Link href="/dashboard/notifications/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Soạn thông báo
+              <PlusCircle className="mr-2 h-4 w-4" /> Gửi thông báo
             </Link>
           </Button>
         </div>
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input type="search" placeholder="Tìm kiếm thông báo..." className="w-full pl-8" />
-          </div>
-          <Select defaultValue="all">
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Loại thông báo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả thông báo</SelectItem>
-              <SelectItem value="received">Đã nhận</SelectItem>
-              <SelectItem value="sent">Đã gửi</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select defaultValue="all-status">
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-status">Tất cả trạng thái</SelectItem>
-              <SelectItem value="read">Đã đọc</SelectItem>
-              <SelectItem value="unread">Chưa đọc</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid gap-4">
-          {[
-            {
-              id: 1,
-              title: "Thông báo tăng giá điện",
-              sender: "Admin",
-              recipient: "Tất cả khách thuê",
-              time: "2 giờ trước",
-              content:
-                "Kính gửi quý khách, giá điện sẽ được điều chỉnh từ 4,000 VNĐ/kWh lên 4,200 VNĐ/kWh từ ngày 01/06/2025. Xin cảm ơn.",
-              status: "sent",
-              isRead: true,
-            },
-            {
-              id: 2,
-              title: "Yêu cầu sửa chữa",
-              sender: "Nguyễn Văn B (P101)",
-              recipient: "Admin",
-              time: "1 ngày trước",
-              content: "Kính gửi chủ trọ, vòi nước trong phòng tắm bị hỏng, mong được sửa chữa sớm. Xin cảm ơn.",
-              status: "received",
-              isRead: true,
-            },
-            {
-              id: 3,
-              title: "Nhắc nhở thanh toán hóa đơn",
-              sender: "Hệ thống",
-              recipient: "Trần Thị C (P202)",
-              time: "3 ngày trước",
-              content:
-                "Kính gửi quý khách, hóa đơn tháng 4/2025 của quý khách đã quá hạn thanh toán. Vui lòng thanh toán sớm để tránh phí phạt. Xin cảm ơn.",
-              status: "sent",
-              isRead: false,
-            },
-            {
-              id: 4,
-              title: "Thông báo bảo trì hệ thống điện",
-              sender: "Admin",
-              recipient: "Nhà trọ Minh Tâm",
-              time: "5 ngày trước",
-              content:
-                "Kính gửi quý khách, hệ thống điện sẽ được bảo trì vào ngày 15/05/2025 từ 8h-12h. Mong quý khách thông cảm. Xin cảm ơn.",
-              status: "sent",
-              isRead: true,
-            },
-            {
-              id: 5,
-              title: "Đăng ký sử dụng dịch vụ giặt ủi",
-              sender: "Lê Văn D (P101)",
-              recipient: "Admin",
-              time: "1 tuần trước",
-              content: "Kính gửi chủ trọ, tôi muốn đăng ký sử dụng dịch vụ giặt ủi hàng tuần. Xin cảm ơn.",
-              status: "received",
-              isRead: false,
-            },
-          ].map((notification) => (
-            <Card key={notification.id} className="overflow-hidden">
-              <CardContent className="p-0">
-                <div className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1">
-                      {notification.status === "received" ? (
-                        <Avatar className="h-10 w-10 border">
-                          <AvatarImage
-                            src={`/placeholder.svg?text=${notification.sender.charAt(0)}`}
-                            alt={notification.sender}
-                          />
-                          <AvatarFallback>{notification.sender.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <Bell className="h-5 w-5 text-primary" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{notification.title}</h3>
-                          {!notification.isRead && notification.status === "received" && (
-                            <Badge variant="default" className="ml-2">
-                              Mới
-                            </Badge>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground">{notification.time}</span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Hộp thư đến</CardTitle>
+            <CardDescription>Danh sách tất cả các thông báo bạn đã nhận.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {notifications.length > 0 ? (
+                notifications.map((item) => (
+                  <div
+                    key={item.MaThongBao}
+                    onClick={() => handleNotificationClick(item)}
+                    className="flex items-start space-x-4 p-4 rounded-lg border cursor-pointer hover:bg-accent transition-colors"
+                  >
+                    {/* Thay đổi 1: Sử dụng isRead */}
+                    <div className={cn("mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full", !item.isRead ? 'bg-primary animate-pulse' : 'bg-muted')} />
+                    <div className="flex-1 space-y-1">
+                      <div className="flex justify-between items-center">
+                          {/* Thay đổi 2: Sử dụng isRead và truy cập trực tiếp */}
+                          <p className={cn("text-sm font-medium leading-none", !item.isRead && "font-bold")}>
+                             {item.TieuDe}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(item.ThoiGianGui), { addSuffix: true, locale: vi })}
+                          </p>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {notification.status === "received"
-                          ? `Từ: ${notification.sender}`
-                          : `Đến: ${notification.recipient}`}
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                          {item.NoiDung}
                       </p>
-                      <p className="text-sm line-clamp-2">{notification.content}</p>
                     </div>
                   </div>
-                </div>
-
-                <div className="flex border-t">
-                  <Button variant="ghost" className="flex-1 rounded-none h-12" asChild>
-                    <Link href={`/dashboard/notifications/${notification.id}`}>Xem chi tiết</Link>
-                  </Button>
-                  {notification.status === "received" && !notification.isRead && (
-                    <>
-                      <div className="w-px bg-border" />
-                      <Button variant="ghost" className="flex-1 rounded-none h-12" asChild>
-                        <Link href={`/dashboard/notifications/${notification.id}/mark-read`}>Đánh dấu đã đọc</Link>
-                      </Button>
-                    </>
-                  )}
-                  {notification.status === "received" && (
-                    <>
-                      <div className="w-px bg-border" />
-                      <Button variant="ghost" className="flex-1 rounded-none h-12" asChild>
-                        <Link href={`/dashboard/notifications/new?reply=${notification.id}`}>Trả lời</Link>
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-12">Bạn không có thông báo nào.</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </DashboardLayout>
-  )
+
+      {/* Cải tiến: Sử dụng AlertDialog để xem chi tiết, thay cho alert() */}
+      <AlertDialog open={!!selectedNotification} onOpenChange={(isOpen) => !isOpen && setSelectedNotification(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{selectedNotification?.TieuDe}</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs pt-2">
+                Gửi lúc: {selectedNotification ? new Date(selectedNotification.ThoiGianGui).toLocaleString('vi-VN') : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4 whitespace-pre-wrap text-sm max-h-[60vh] overflow-y-auto">
+            {selectedNotification?.NoiDung}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSelectedNotification(null)}>Đóng</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }

@@ -1,238 +1,210 @@
-import DashboardLayout from "@/components/dashboard/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { AlertCircle, Building2, FileText, Home, Plus, Users, Wallet } from "lucide-react"
-import Link from "next/link"
+// file: client/app/dashboard/page.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Building2, Home, Users, Wallet, FileWarning, Hourglass } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { differenceInDays, format } from 'date-fns';
+
+import { getLandlordDashboardSummary } from '@/services/dashboardService';
+import { IDashboardSummary } from '@/types/dashboard';
+import { IContract } from '@/types/contract';
+import { IInvoice } from '@/types/invoice';
+import { useToast } from '@/components/ui/use-toast';
+
+// Component con để hiển thị một thẻ thống kê
+const StatCard = ({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) => (
+    <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            {icon}
+        </CardHeader>
+        <CardContent>
+            <div className="text-2xl font-bold">{value}</div>
+        </CardContent>
+    </Card>
+);
+
+// Component con để hiển thị biểu đồ tròn
+const RoomOccupancyChart = ({ data }: { data: IDashboardSummary['roomSummary'] }) => {
+    const chartData = [
+        { name: 'Đang thuê', value: data.occupied },
+        { name: 'Còn trống', value: data.vacant },
+        { name: 'Đặt cọc', value: data.deposit },
+    ];
+    const COLORS = ['#16a34a', '#f97316', '#3b82f6']; // Xanh lá, Cam, Xanh dương
+
+    if (data.total === 0) {
+        return <div className="flex h-[250px] items-center justify-center"><p className="text-sm text-muted-foreground">Chưa có phòng nào.</p></div>;
+    }
+
+    return (
+        <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+                <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                    {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => `${value} phòng`} />
+                <Legend />
+            </PieChart>
+        </ResponsiveContainer>
+    );
+};
+
+// Component con để hiển thị danh sách các mục cần chú ý
+const ActionableList = ({ title, items, emptyText, renderItem, icon }: { title: string, items: any[], emptyText: string, renderItem: (item: any) => React.ReactNode, icon: React.ReactNode }) => (
+    <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                {icon} {title}
+            </CardTitle>
+        </CardHeader>
+        <CardContent>
+            {items.length > 0 ? (
+                <div className="space-y-4">
+                    {items.map(renderItem)}
+                </div>
+            ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">{emptyText}</p>
+            )}
+        </CardContent>
+    </Card>
+);
+
 
 export default function DashboardPage() {
-  return (
-    // <DashboardLayout>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Tổng quan</h1>
-          <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/dashboard/contracts/new">
-                <Plus className="mr-2 h-4 w-4" />
-                Tạo hợp đồng
-              </Link>
-            </Button>
-          </div>
-        </div>
+    const [summary, setSummary] = useState<IDashboardSummary | null>(null);
+    const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tổng số nhà trọ</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground">+1 so với tháng trước</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tổng số phòng</CardTitle>
-              <Home className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">24</div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-500">80%</span> đang cho thuê
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tổng số khách thuê</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">32</div>
-              <p className="text-xs text-muted-foreground">+5 so với tháng trước</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Doanh thu tháng</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">48.5M</div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-500">+12%</span> so với tháng trước
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+    useEffect(() => {
+        getLandlordDashboardSummary()
+            .then(setSummary)
+            .catch(err => {
+                console.error("Failed to load dashboard summary:", err);
+                toast({ title: "Lỗi", description: "Không thể tải dữ liệu tổng quan.", variant: "destructive" });
+            })
+            .finally(() => setLoading(false));
+    }, [toast]);
 
-        <Tabs defaultValue="contracts">
-          <TabsList>
-            <TabsTrigger value="contracts">Hợp đồng sắp hết hạn</TabsTrigger>
-            <TabsTrigger value="bills">Hóa đơn chưa thanh toán</TabsTrigger>
-          </TabsList>
-          <TabsContent value="contracts" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Hợp đồng sắp hết hạn</CardTitle>
-                <CardDescription>Danh sách các hợp đồng sẽ hết hạn trong 30 ngày tới</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {[
-                    { id: "HD001", room: "P101", tenant: "Nguyễn Văn B", endDate: "15/05/2025" },
-                    { id: "HD002", room: "P203", tenant: "Trần Thị C", endDate: "20/05/2025" },
-                    { id: "HD003", room: "P305", tenant: "Lê Văn D", endDate: "01/06/2025" },
-                  ].map((contract) => (
-                    <div key={contract.id} className="flex items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-1">
-                        <p className="font-medium">
-                          {contract.room} - {contract.tenant}
-                        </p>
-                        <p className="text-sm text-muted-foreground">Hết hạn: {contract.endDate}</p>
-                      </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/dashboard/contracts/${contract.id}`}>Xem chi tiết</Link>
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="bills" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Hóa đơn chưa thanh toán</CardTitle>
-                <CardDescription>Danh sách các hóa đơn chưa thanh toán hoặc quá hạn</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {[
-                    {
-                      id: "HĐ001",
-                      room: "P101",
-                      tenant: "Nguyễn Văn B",
-                      amount: "2.5M",
-                      dueDate: "10/05/2025",
-                      status: "Chưa thanh toán",
-                    },
-                    {
-                      id: "HĐ002",
-                      room: "P203",
-                      tenant: "Trần Thị C",
-                      amount: "3.2M",
-                      dueDate: "05/05/2025",
-                      status: "Quá hạn",
-                    },
-                    {
-                      id: "HĐ003",
-                      room: "P305",
-                      tenant: "Lê Văn D",
-                      amount: "2.8M",
-                      dueDate: "15/05/2025",
-                      status: "Chưa thanh toán",
-                    },
-                  ].map((bill) => (
-                    <div key={bill.id} className="flex items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">
-                            {bill.room} - {bill.tenant}
-                          </p>
-                          {bill.status === "Quá hạn" && (
-                            <span className="flex items-center text-xs text-red-500">
-                              <AlertCircle className="mr-1 h-3 w-3" />
-                              Quá hạn
-                            </span>
-                          )}
+    if (loading || !summary) {
+        return <DashboardSkeleton />;
+    }
+
+    const formatCurrency = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
+    const occupancyRate = summary.roomSummary.total > 0 
+        ? ((summary.roomSummary.occupied / summary.roomSummary.total) * 100).toFixed(0) + '%' 
+        : '0%';
+
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold tracking-tight">Tổng quan</h1>
+            
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Số nhà trọ" value={summary.propertyCount} icon={<Building2 className="h-5 w-5 text-muted-foreground" />} />
+                <StatCard title="Số phòng" value={summary.roomSummary.total} icon={<Home className="h-5 w-5 text-muted-foreground" />} />
+                <StatCard title="Khách đang thuê" value={summary.tenantCount} icon={<Users className="h-5 w-5 text-muted-foreground" />} />
+                <StatCard title="Tỉ lệ lấp đầy" value={occupancyRate} icon={<Users className="h-5 w-5 text-muted-foreground" />} />
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-5">
+                <Card className="lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle>Tình trạng phòng</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <RoomOccupancyChart data={summary.roomSummary} />
+                    </CardContent>
+                </Card>
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Doanh thu tháng này</CardTitle>
+                        <CardDescription>{`Tổng cộng: ${formatCurrency(summary.monthlyRevenue.total)}`}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center">
+                            <div className="h-2 w-2 rounded-full bg-green-500 mr-2" />
+                            <span className="text-sm text-muted-foreground">Đã thanh toán</span>
+                            <span className="ml-auto font-semibold">{formatCurrency(summary.monthlyRevenue.paid)}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Số tiền: {bill.amount} - Hạn: {bill.dueDate}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/dashboard/bills/${bill.id}`}>Xem chi tiết</Link>
-                        </Button>
-                        <Button size="sm" asChild>
-                          <Link href={`/dashboard/bills/${bill.id}/payment`}>Thanh toán</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                        <div className="flex items-center">
+                            <div className="h-2 w-2 rounded-full bg-red-500 mr-2" />
+                            <span className="text-sm text-muted-foreground">Chưa thanh toán</span>
+                            <span className="ml-auto font-semibold">{formatCurrency(summary.monthlyRevenue.unpaid)}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Thông báo gần đây</CardTitle>
-              <CardDescription>Các thông báo mới nhất từ hệ thống và khách thuê</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {[
-                  { id: 1, title: "Yêu cầu sửa chữa", sender: "Nguyễn Văn B (P101)", time: "2 giờ trước" },
-                  { id: 2, title: "Thanh toán hóa đơn", sender: "Hệ thống", time: "1 ngày trước" },
-                  { id: 3, title: "Hợp đồng sắp hết hạn", sender: "Hệ thống", time: "3 ngày trước" },
-                ].map((notification) => (
-                  <div key={notification.id} className="flex items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-1">
-                      <p className="font-medium">{notification.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Từ: {notification.sender} - {notification.time}
-                      </p>
-                    </div>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/dashboard/notifications/${notification.id}`}>Xem</Link>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Hành động nhanh</CardTitle>
-              <CardDescription>Các thao tác thường xuyên sử dụng</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="h-auto flex-col items-start gap-1 p-4" asChild>
-                  <Link href="/dashboard/properties/new">
-                    <Building2 className="h-5 w-5" />
-                    <div className="text-sm font-medium">Thêm nhà trọ</div>
-                  </Link>
-                </Button>
-                <Button variant="outline" className="h-auto flex-col items-start gap-1 p-4" asChild>
-                  <Link href="/dashboard/rooms/new">
-                    <Home className="h-5 w-5" />
-                    <div className="text-sm font-medium">Thêm phòng</div>
-                  </Link>
-                </Button>
-                <Button variant="outline" className="h-auto flex-col items-start gap-1 p-4" asChild>
-                  <Link href="/dashboard/tenants/new">
-                    <Users className="h-5 w-5" />
-                    <div className="text-sm font-medium">Thêm khách thuê</div>
-                  </Link>
-                </Button>
-                <Button variant="outline" className="h-auto flex-col items-start gap-1 p-4" asChild>
-                  <Link href="/dashboard/bills/new">
-                    <FileText className="h-5 w-5" />
-                    <div className="text-sm font-medium">Tạo hóa đơn</div>
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="grid gap-6 lg:grid-cols-2">
+                <ActionableList
+                    title="Hợp đồng sắp hết hạn"
+                    icon={<Hourglass className="h-5 w-5 text-orange-500" />}
+                    items={summary.expiringContracts}
+                    emptyText="Không có hợp đồng nào sắp hết hạn."
+                    renderItem={(contract: IContract) => {
+                        const daysRemaining = differenceInDays(new Date(contract.NgayKetThuc), new Date());
+                        const tenantName = contract.occupants?.find(o => o.LaNguoiDaiDien)?.tenant.HoTen || 'N/A';
+                        return (
+                            <div key={contract.MaHopDong} className="flex items-center">
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium leading-none">P. {contract.room?.TenPhong} - {tenantName}</p>
+                                    <p className="text-sm text-muted-foreground">Hết hạn trong <span className="font-bold text-orange-500">{daysRemaining} ngày</span> - ({format(new Date(contract.NgayKetThuc), 'dd/MM/yyyy')})</p>
+                                </div>
+                                <Button variant="secondary" size="sm" asChild className="ml-auto">
+                                    <Link href={`/dashboard/contracts/${contract.MaHopDong}`}>Chi tiết</Link>
+                                </Button>
+                            </div>
+                        );
+                    }}
+                />
+                <ActionableList
+                    title="Hóa đơn cần thu"
+                    icon={<FileWarning className="h-5 w-5 text-red-500" />}
+                    items={summary.unpaidInvoices}
+                    emptyText="Tuyệt vời! Không có hóa đơn nào chưa thanh toán."
+                    renderItem={(invoice: IInvoice) => {
+                        const tenantName = invoice.contract?.occupants?.find(o => o.LaNguoiDaiDien)?.tenant.HoTen || 'N/A';
+                        return (
+                            <div key={invoice.MaHoaDon} className="flex items-center">
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium leading-none">P. {invoice.contract?.room?.TenPhong} - {tenantName}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        <span className="font-bold text-red-500">{formatCurrency(invoice.TongTienPhaiTra)}</span>
+                                        {' / Hạn chót: '}
+                                        <span className="font-semibold">{format(new Date(invoice.NgayHanThanhToan), 'dd/MM/yyyy')}</span>
+                                    </p>
+                                </div>
+                                <Button variant="secondary" size="sm" asChild className="ml-auto">
+                                    <Link href={`/dashboard/bills/${invoice.MaHoaDon}`}>Chi tiết</Link>
+                                </Button>
+                            </div>
+                        );
+                    }}
+                />
+            </div>
         </div>
-      </div>
-    // </DashboardLayout>
-  )
+    );
 }
+
+const DashboardSkeleton = () => (
+    <div className="space-y-6">
+        <Skeleton className="h-9 w-48" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-5">
+            <Skeleton className="lg:col-span-3 h-72" /><Skeleton className="lg:col-span-2 h-72" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+            <Skeleton className="h-60" /><Skeleton className="h-60" />
+        </div>
+    </div>
+);

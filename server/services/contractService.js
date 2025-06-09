@@ -254,10 +254,32 @@ const terminateContract = async (maHopDong, maChuTro) => {
     }
 };
 
+const getAllContractsForTenant = async (maKhachThue) => {
+    return Contract.findAll({
+        include: [
+            {
+                model: Room,
+                as: 'room',
+                attributes: ['TenPhong'],
+                include: [{ model: Property, as: 'property', attributes: ['TenNhaTro'] }]
+            },
+            {
+                model: Occupant,
+                as: 'occupants',
+                where: { MaKhachThue: maKhachThue },
+                required: true, // INNER JOIN để đảm bảo chỉ lấy hợp đồng có khách thuê này
+                include: [{ model: Tenant, as: 'tenant', attributes: ['HoTen'] }]
+            }
+        ],
+        order: [['NgayBatDau', 'DESC']],
+    });
+};
+
 // Các hàm update và delete khác có thể được thêm vào tương tự nếu cần
 module.exports = {
     getAllContractsForLandlord,
     getContractById,
     createContract,
     terminateContract,
+    getAllContractsForTenant
 };

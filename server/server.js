@@ -19,6 +19,8 @@ const lichSuGiaDichVuRoutes = require("./routes/lichSuGiaDichVu");
 const lichSuGiaDienNuocRoutes = require("./routes/lichSuGiaDienNuoc");
 const phuongThucThanhToanRoutes = require("./routes/phuongThucThanhToan");
 const suDungDichVuRoutes = require("./routes/suDungDichVu");
+const notificationRoutes = require("./routes/notificationRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const db = require("./models");
 const {
@@ -55,6 +57,8 @@ app.use("/api/lich-su-gia-dich-vu", lichSuGiaDichVuRoutes);
 app.use("/api/lich-su-gia-dien-nuoc", lichSuGiaDienNuocRoutes);
 app.use("/api/phuong-thuc-thanh-toan", phuongThucThanhToanRoutes);
 app.use("/api/su-dung-dich-vu", suDungDichVuRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Phục vụ static files cho client và uploads
 app.use(express.static(path.join(__dirname, "../client/build")));

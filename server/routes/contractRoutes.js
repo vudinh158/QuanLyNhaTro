@@ -10,7 +10,7 @@ router.use(protect);
 
 // API để lấy danh sách và tạo mới hợp đồng
 router.route('/')
-  .get(restrictTo('contract:read_own_property'), contractController.getAllContracts) // Quyền của Chủ trọ
+  .get(contractController.getAllContracts)
   .post(restrictTo('contract:create'), contractController.createContract);
 
 // API để xem chi tiết, cập nhật và thanh lý

@@ -1,86 +1,68 @@
 const authService = require('../services/authService');
 const AppError = require('../utils/AppError');
+const catchAsync = require('../utils/catchAsync');
+const { UserAccount, Role, Permission, Landlord, Tenant } = require('../models');
 
-// bắt lỗi async cho các hàm controller
-const catchAsync = fn => {
-  return (req, res, next) => {
-    fn(req, res, next).catch(next);
-  };
+// Hàm này đã đúng, giữ nguyên
+const formatUserResponse = (userObject) => {
+    if (!userObject) return null;
+    const userJson = typeof userObject.toJSON === 'function' ? userObject.toJSON() : { ...userObject };
+    delete userJson.MatKhau;
+    if (userJson.role) {
+        delete userJson.role.permissions;
+    }
+    if (userJson.tenantProfile) {
+        userJson.khachThueProfile = userJson.tenantProfile;
+        delete userJson.tenantProfile;
+    }
+    if (userJson.landlordProfile) {
+        userJson.chuTroProfile = userJson.landlordProfile;
+        delete userJson.landlordProfile;
+    }
+    delete userJson.permissions;
+    return userJson;
 };
 
+// Cập nhật hàm register
 exports.register = catchAsync(async (req, res, next) => {
-  const {
-    TenDangNhap, MatKhau, MaVaiTro, HoTen, SoDienThoai, Email, CCCD, NgaySinh, GioiTinh, QueQuan
-  } = req.body;
-
-  if (!TenDangNhap || !MatKhau || !MaVaiTro || !HoTen || !SoDienThoai) {
-    return next(new AppError('Vui lòng cung cấp đầy đủ thông tin bắt buộc: Tên đăng nhập, Mật khẩu, Mã vai trò, Họ tên, Số điện thoại.', 400));
-  }
-
-  const newUser = await authService.register(req.body);
-
-  const { user, token } = await authService.login({ tenDangNhapOrEmail: newUser.TenDangNhap, matKhau: MatKhau });
-
-
-  res.status(201).json({
-    status: 'success',
-    token,
-    data: {
-      user: user,
-    },
-    message: 'Đăng ký tài khoản thành công!'
-  });
+    // Service đã xử lý tất cả logic, ta chỉ cần gọi
+    await authService.register(req.body);
+    res.status(201).json({
+        status: 'success',
+        message: 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.'
+    });
 });
 
+// ---- CẬP NHẬT CHÍNH Ở ĐÂY ----
+// Cập nhật hàm login để nó đơn giản hơn
 exports.login = catchAsync(async (req, res, next) => {
-  const { tenDangNhapOrEmail, matKhau } = req.body;
+    const { tenDangNhapOrEmail, matKhau } = req.body;
+    if (!tenDangNhapOrEmail || !matKhau) {
+        return next(new AppError('Vui lòng cung cấp tên đăng nhập/email và mật khẩu.', 400));
+    }
+    
+    // authService.login giờ đã trả về đầy đủ { user, token }
+    const { user, token } = await authService.login({ tenDangNhapOrEmail, matKhau });
 
-  if (!tenDangNhapOrEmail || !matKhau) {
-    return next(new AppError('Vui lòng cung cấp tên đăng nhập/email và mật khẩu.', 400));
-  }
-
-  const { user, token } = await authService.login({ tenDangNhapOrEmail, matKhau });
-
-  res.status(200).json({
-    status: 'success',
-    token,
-    data: {
-      user,
-    },
-  });
+    // Controller chỉ cần format và gửi response đi
+    res.status(200).json({
+        status: 'success',
+        token,
+        data: {
+            user: formatUserResponse(user),
+        },
+    });
 });
 
-
+// Hàm này đã đúng, giữ nguyên
 exports.getMe = catchAsync(async (req, res, next) => {
-  if (!req.user) {
-      return next(new AppError('Không tìm thấy người dùng. Vui lòng đăng nhập lại.', 401));
-  }
-
-  const { MaTK, TenDangNhap, Email, MaVaiTro, TrangThai, vaiTro, chuTroProfile, khachThueProfile } = req.user;
-
-  let profile = null;
-  if (vaiTro.TenVaiTro === 'Chủ trọ' && chuTroProfile) {
-    profile = chuTroProfile;
-  } else if (vaiTro.TenVaiTro === 'Khách thuê' && khachThueProfile) {
-    profile = khachThueProfile;
-  }
-
-
-  res.status(200).json({
-      status: 'success',
-      data: {
-          user: {
-            MaTK,
-            TenDangNhap,
-            EmailTaiKhoan: Email,
-            MaVaiTro,
-            TrangThai,
-            vaiTro: {
-                MaVaiTro: vaiTro.MaVaiTro,
-                TenVaiTro: vaiTro.TenVaiTro
-            },
-            profile 
-          }
-      }
-  });
+    if (!req.user) {
+        return next(new AppError('Không tìm thấy người dùng. Vui lòng đăng nhập lại.', 401));
+    }
+    res.status(200).json({
+        status: 'success',
+        data: {
+            user: formatUserResponse(req.user),
+        }
+    });
 });

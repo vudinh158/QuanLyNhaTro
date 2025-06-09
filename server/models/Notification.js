@@ -24,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     LoaiNguoiNhan: {
-      type: DataTypes.ENUM('Chủ trọ', 'Khách thuê', 'Tất cả Khách thuê', 'Tất cả Chủ trọ'),
+      type: DataTypes.ENUM('Chủ trọ', 'Khách thuê'),
       allowNull: false,
     },
     MaNguoiNhan: {
