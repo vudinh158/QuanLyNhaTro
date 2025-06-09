@@ -36,4 +36,10 @@ router
     dichVuController.deleteDichVu
   );
 
+  router.patch(
+    '/:id/update-price', // Endpoint mới
+    restrictTo('service_definition:manage_own_property'), //
+    dichVuController.updateGiaDichVu // Ánh xạ tới hàm updateGiaDichVu trong controller
+  );
+
 module.exports = router;

@@ -2,9 +2,9 @@ import axiosInstance from '@/lib/axios';
 import type { Property, NewPropertyData, UpdatePropertyData } from '@/types/property';
 import type { ApiResponse } from '@/types/api';
 
-export const getMyProperties = async (): Promise<Property[]> => {
+export const getMyProperties = async (queryParams?: { search?: string, status?: string }): Promise<Property[]> => {
   try {
-    const response = await axiosInstance.get<ApiResponse<Property>>('/properties');
+    const response = await axiosInstance.get<ApiResponse<Property[]>>('/properties', { params: queryParams });
     return response.data.data.properties as Property[];
   } catch (error: any) {
     console.error("Error fetching properties:", error);

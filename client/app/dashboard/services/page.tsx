@@ -159,10 +159,10 @@ export default function ServicesPage() {
                     <Button variant="ghost" className="flex-1 rounded-none h-12" asChild>
                       <Link href={`/dashboard/services/${service.MaDV}/edit`}>Chỉnh sửa</Link>
                     </Button>
-                    <div className="w-px bg-border" />
+                    {/* <div className="w-px bg-border" />
                     <Button variant="ghost" className="flex-1 rounded-none h-12" asChild>
                       <Link href={`/dashboard/services/${service.MaDV}/usage`}>Ghi nhận sử dụng</Link>
-                    </Button>
+                    </Button> */}
                   </div>
                 </CardContent>
               </Card>

@@ -110,25 +110,39 @@ exports.updateGiaDichVu = async (req, res, next) => {
       throw new AppError('Giá mới phải lớn hơn 0', 400);
     }
 
-    const dichVu = await Service.findByPk(id);
+    const dichVu = await Service.findByPk(id); //
     if (!dichVu) throw new AppError('Không tìm thấy dịch vụ', 404);
 
-    // Phân quyền chủ trọ
-    if (
-      req.user.TenVaiTro === 'Chủ trọ' &&
-      dichVu.MaNhaTro &&
-      (await Property.findByPk(dichVu.MaNhaTro)).MaChuTro !== req.user.MaChuTro
-    ) {
-      throw new AppError('Bạn không có quyền sửa giá dịch vụ này', 403);
+    // --- BẮT ĐẦU PHẦN SỬA LỖI PHÂN QUYỀN ---
+    // Phân quyền chủ trọ:
+    // Nếu dịch vụ là riêng cho một nhà trọ (MaNhaTro có giá trị)
+    // THÌ phải kiểm tra xem nhà trọ đó có thuộc quyền quản lý của chủ trọ hiện tại không.
+    // Nếu dịch vụ là chung (MaNhaTro là null), thì chủ trọ vẫn có thể chỉnh sửa nếu có quyền chung.
+    // Quyền 'service_definition:manage_own_property' áp dụng cho cả dịch vụ chung và riêng
+    // (backend của bạn đã có restrictTo này ở route).
+    // Logic này sẽ kiểm tra quyền sở hữu đối với dịch vụ riêng.
+    if (req.user.TenVaiTro === 'Chủ trọ') { //
+        if (dichVu.MaNhaTro) { // Nếu dịch vụ này thuộc về một nhà trọ cụ thể
+            const property = await Property.findByPk(dichVu.MaNhaTro); //
+            if (!property || property.MaChuTro !== req.user.MaChuTro) { //
+                throw new AppError('Bạn không có quyền sửa giá dịch vụ này (không thuộc nhà trọ của bạn).', 403);
+            }
+        } else {
+            // Đây là dịch vụ chung (MaNhaTro là null).
+            // Middleware `restrictTo('service_definition:manage_own_property')`
+            // đã đảm bảo user có quyền tổng thể để quản lý dịch vụ.
+            // Không cần kiểm tra thêm quyền sở hữu nhà trọ cụ thể.
+        }
     }
+    // --- KẾT THÚC PHẦN SỬA LỖI PHÂN QUYỀN ---
 
     const giaCu = await ServicePriceHistory.findOne({
       where: { MaDV: id },
       order: [['NgayApDung', 'DESC']]
-    });
+    }); //
 
     // Nếu giá không đổi thì không làm gì
-    if (giaCu && giaCu.DonGiaMoi === DonGiaMoi) {
+    if (giaCu && giaCu.DonGiaMoi == DonGiaMoi) { // Sử dụng == thay vì === để so sánh DECIMAL với Number
       return res.status(200).json({ status: 'no_change', message: 'Giá không thay đổi' });
     }
 
@@ -136,12 +150,14 @@ exports.updateGiaDichVu = async (req, res, next) => {
       MaDV: id,
       DonGiaCu: giaCu ? giaCu.DonGiaMoi : 0,
       DonGiaMoi,
-      NgayApDung: new Date()
+      NgayApDung: new Date(),
+      MaNguoiCapNhat: req.user.MaTK // Lưu MaTK của người dùng cập nhật
     });
 
     res.status(200).json({ status: 'success', message: 'Cập nhật giá thành công' });
   } catch (error) {
-    next(error);
+    console.error("Lỗi trong updateGiaDichVu:", error); // Thêm log chi tiết lỗi server
+    next(error); // Chuyển lỗi cho middleware xử lý lỗi chung
   }
 };
 
