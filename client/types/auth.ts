@@ -1,6 +1,7 @@
 
 export interface OtpResponse {
-  message: string;
+    message: string;
+    otpToken?: string;
 }
 
 export interface UserRegisterData {

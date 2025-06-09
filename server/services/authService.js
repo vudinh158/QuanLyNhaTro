@@ -71,7 +71,7 @@ async function verifyOtp(code, otpToken) {
         throw new AppError('Mã OTP đã hết hạn.', 401);
       }
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new AppError('Token OTP không hợp lệ.', 401);
+          throw new AppError('Token OTP không hợp lệ.', 401);
       }
       // Ném lại các lỗi khác (ví dụ từ bcrypt hoặc AppError đã ném ở trên)
       throw error;

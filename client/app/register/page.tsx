@@ -25,11 +25,13 @@ export default function RegisterPage() {
   const [step, setStep] = useState<"email"|"otp"|"form">("email");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Chung
+  // Dữ liệu
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-
-  // Form chủ trọ
+  // ---- THÊM STATE MỚI ĐỂ LƯU TOKEN ----
+  const [otpToken, setOtpToken] = useState(""); 
+  
+  // ... các state cho form giữ nguyên
   const [tenDangNhap, setTenDangNhap] = useState("");
   const [hoTen, setHoTen] = useState("");
   const [matKhau, setMatKhau] = useState("");
@@ -39,25 +41,34 @@ export default function RegisterPage() {
   const [ngaySinh, setNgaySinh] = useState("");
   const [gioiTinh, setGioiTinh] = useState<"Nam"|"Nữ"|"Khác"|undefined>(undefined);
 
-  // 1) Gửi OTP
+  // 1) Gửi OTP - Cập nhật để lưu token
   const handleSendOtp = async () => {
     if (!email) return toast({ title: "Lỗi", description: "Nhập email.", variant: "destructive" });
     setIsLoading(true);
     try {
-      await sendOtp(email);
-      toast({ title: "OTP đã gửi", description: "Kiểm tra email." });
-      setStep("otp");
+      // ---- LƯU LẠI TOKEN TỪ RESPONSE ----
+      const response = await sendOtp(email);
+      if (response.otpToken) {
+        setOtpToken(response.otpToken); // Lưu token vào state
+        toast({ title: "OTP đã gửi", description: "Kiểm tra email." });
+        setStep("otp");
+      } else {
+        throw new Error("Không nhận được token xác thực.");
+      }
     } catch (err: any) {
       toast({ title: "Gửi OTP thất bại", description: err.message, variant: "destructive" });
     } finally { setIsLoading(false); }
   };
 
-  // 2) Xác thực OTP
+  // 2) Xác thực OTP - Cập nhật để gửi token
   const handleVerifyOtp = async () => {
     if (!otp) return toast({ title: "Lỗi", description: "Nhập OTP.", variant: "destructive" });
+    // ---- VALIDATE THÊM TOKEN ----
+    if (!otpToken) return toast({ title: "Lỗi", description: "Thiếu token xác thực. Vui lòng thử lại.", variant: "destructive" });
     setIsLoading(true);
     try {
-      await verifyOtp(email, otp);
+      // ---- GỬI OTP VÀ TOKEN ĐÃ LƯU ----
+      await verifyOtp(otp, otpToken); 
       toast({ title: "Xác thực thành công" });
       setStep("form");
     } catch (err: any) {
@@ -65,7 +76,7 @@ export default function RegisterPage() {
     } finally { setIsLoading(false); }
   };
 
-  // 3) Hoàn tất đăng ký
+  // 3) Hoàn tất đăng ký (giữ nguyên)
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (matKhau !== confirmPassword) {
@@ -91,7 +102,8 @@ export default function RegisterPage() {
       toast({ title: "Đăng ký thất bại", description: err.message, variant: "destructive" });
     } finally { setIsLoading(false); }
   };
-
+  
+  // Phần JSX trả về giữ nguyên
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
       <Card className="w-full max-w-lg">
@@ -110,36 +122,36 @@ export default function RegisterPage() {
               <Label htmlFor="email">Email *</Label>
               <Input id="email" type="email" placeholder="example@mail.com"
                 value={email} onChange={e=>setEmail(e.target.value)} />
-              {/* Thêm type="button" để tránh mặc định là submit */}
               <Button type="button" onClick={handleSendOtp} disabled={isLoading} className="w-full">Gửi mã OTP</Button>
             </div>
           )}
 
           {step === "otp" && (
-  <div className="space-y-4">
-    <Label htmlFor="otp">Mã OTP *</Label>
-    <Input
-      id="otp"
-      placeholder="Nhập mã 6 chữ số"
-      value={otp}
-      onChange={e => setOtp(e.target.value)}
-    />
-    <Button
-      type="button"
-      onClick={handleVerifyOtp}
-      disabled={isLoading}
-      className="w-full"
-    >
-      Xác thực OTP
-    </Button>
-  </div>
-)}
-
+            <div className="space-y-4">
+              <Label htmlFor="otp">Mã OTP *</Label>
+              <Input
+                id="otp"
+                placeholder="Nhập mã 6 chữ số"
+                value={otp}
+                onChange={e => setOtp(e.target.value)}
+              />
+              <Button
+                type="button"
+                onClick={handleVerifyOtp}
+                disabled={isLoading}
+                className="w-full"
+              >
+                Xác thực OTP
+              </Button>
+            </div>
+          )}
+          
+          {/* Form đăng ký giữ nguyên không đổi */}
           {step === "form" && (
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-
-              {/* Tên đăng nhập */}
-              <div className="space-y-2">
+              {/* ...các input của form... */}
+                 {/* Tên đăng nhập */}
+                 <div className="space-y-2">
                 <Label htmlFor="tenDangNhap">Tên đăng nhập *</Label>
                 <Input
                   id="tenDangNhap"

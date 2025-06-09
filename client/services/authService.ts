@@ -8,10 +8,14 @@ export const sendOtp = async (email: string): Promise<OtpResponse> => {
 };
 
 /** Xác thực OTP */
-export const verifyOtp = async (email: string, code: string): Promise<OtpResponse> => {
-  const res = await axiosInstance.post<OtpResponse>('/auth/verify-otp', { email, code });
-  return res.data;
-};
+export const verifyOtp = async (
+    code: string,
+    otpToken: string // Thay `email` bằng `otpToken`
+  ): Promise<OtpResponse> => {
+    // Gửi `code` và `otpToken` lên server
+    const res = await axiosInstance.post<OtpResponse>('/auth/verify-otp', { code, otpToken });
+    return res.data;
+  };
 
 /** Đăng ký Chủ Trọ sau OTP */
 export const registerUser = async (data: UserRegisterData): Promise<AuthResponse> => {
