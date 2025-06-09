@@ -39,7 +39,13 @@ const app = express();
 const isTest = process.env.NODE_ENV === "test";
 
 // Middleware chung
-app.use(cors());
+const corsOptions = {
+    origin: 'http://localhost:3000', // Chỉ định chính xác origin của frontend
+    credentials: true, // Cho phép request gửi kèm cookie/credentials
+    optionsSuccessStatus: 200 // Dành cho một số trình duyệt cũ
+  };
+  
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
 // Đăng ký các route

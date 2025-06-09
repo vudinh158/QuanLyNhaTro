@@ -66,3 +66,27 @@ exports.getMe = catchAsync(async (req, res, next) => {
         }
     });
 });
+
+exports.sendOtp = catchAsync(async (req, res, next) => {
+    const { email } = req.body;
+    // authService.sendOtp giờ trả về token
+    const { otpToken } = await authService.sendOtp(email);
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Mã OTP đã được gửi về email của bạn.',
+        otpToken, // Gửi token này về cho client
+    });
+});
+
+exports.verifyOtp = catchAsync(async (req, res, next) => {
+    // Client phải gửi lên cả `code` và `otpToken`
+    const { code, otpToken } = req.body;
+    
+    const result = await authService.verifyOtp(code, otpToken);
+
+    res.status(200).json({
+        status: 'success',
+        message: result.message,
+    });
+});

@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs"); //
+const jwt = require("jsonwebtoken");
 const {
   UserAccount,
   Role,
@@ -19,32 +20,63 @@ function randomCode() {
 
 // Hàm gửi OTP vào email, lưu vào DB
 async function sendOtp(email) {
-  if (!email) throw new AppError("Email là bắt buộc.", 400);
-  const code = randomCode();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 phút
-
-  // tạo bản ghi OTP
-  await Otp.create({ email, code, expiresAt });
-
-  // gửi mail
-  await transporter.sendMail({
-    to: email,
-    subject: "Mã OTP xác thực",
-    text: `Mã xác thực của bạn là ${code}. Hết hạn sau 10 phút.`,
-  });
-  return { message: "OTP đã gửi về email." };
-}
+    if (!email) throw new AppError('Email là bắt buộc.', 400);
+  
+    const code = randomCode();
+    const expiresAt = '10m'; // Thời gian hết hạn của token
+  
+    // Gửi email chứa mã OTP gốc
+    await transporter.sendMail({
+      to: email,
+      subject: 'Mã OTP xác thực tài khoản',
+      text: `Mã xác thực của bạn là ${code}. Mã này sẽ hết hạn sau 10 phút.`,
+    });
+  
+    // Băm mã OTP trước khi đưa vào token
+    const hashedCode = await bcrypt.hash(code, 10);
+  
+    // Tạo JWT chứa email và mã OTP đã băm
+    const otpToken = jwt.sign(
+      { email, hashedCode },
+      process.env.JWT_SECRET, // Đảm bảo bạn có JWT_SECRET trong file .env
+      { expiresIn: expiresAt }
+    );
+  
+    return { otpToken };
+  }
 
 // Hàm verify OTP, xóa bản ghi khi thành công
-async function verifyOtp(email, code) {
-  if (!email || !code) throw new AppError("Email và mã OTP là bắt buộc.", 400);
-  const otpEntry = await Otp.findOne({
-    where: { email, code, expiresAt: { [Op.gt]: new Date() } },
-  });
-  if (!otpEntry) throw new AppError("OTP không hợp lệ hoặc đã hết hạn.", 400);
-  await otpEntry.destroy();
-  return { message: "Xác thực OTP thành công." };
-}
+async function verifyOtp(code, otpToken) {
+    if (!code || !otpToken) {
+      throw new AppError('Mã OTP và token là bắt buộc.', 400);
+    }
+  
+    try {
+      // Xác thực và giải mã token
+      const decoded = jwt.verify(otpToken, process.env.JWT_SECRET);
+  
+      // So sánh mã người dùng nhập với hash trong token
+      const isMatch = await bcrypt.compare(code, decoded.hashedCode);
+  
+      if (!isMatch) {
+        throw new AppError('Mã OTP không chính xác.', 401);
+      }
+  
+      // Nếu muốn, bạn có thể kiểm tra email trong token
+      // if (decoded.email !== emailFromSomewhere) { ... }
+  
+      return { message: 'Xác thực OTP thành công.' };
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        throw new AppError('Mã OTP đã hết hạn.', 401);
+      }
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw new AppError('Token OTP không hợp lệ.', 401);
+      }
+      // Ném lại các lỗi khác (ví dụ từ bcrypt hoặc AppError đã ném ở trên)
+      throw error;
+    }
+  }
 
 const register = async (userData) => {
   const {
