@@ -43,7 +43,6 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Đăng ký các route
-app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/tenants", tenantRoutes);
@@ -61,7 +60,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // Phục vụ static files cho client và uploads
-app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/auth", require("./routes/auth"));
 app.use(express.static(path.join(__dirname, "../client/build")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.get("*", (req, res) => {
