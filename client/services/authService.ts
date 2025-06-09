@@ -1,38 +1,50 @@
 import axiosInstance from '@/lib/axios';
-import type { UserLoginData, UserRegisterData, AuthResponse } from '@/types/auth';
+import type {
+  UserRegisterData,
+  UserLoginData,
+  AuthResponse,
+  OtpResponse
+} from '@/types/auth';
 
-export const registerUser = async (userData: UserRegisterData): Promise<AuthResponse> => {
-  try {
-    const response = await axiosInstance.post('/auth/register', userData);
-    return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.data) {
-      throw new Error(error.response.data.message || error.response.data.error || 'Lỗi đăng ký');
-    }
-    throw new Error('Lỗi kết nối hoặc lỗi không xác định khi đăng ký.');
-  }
+/**
+ * Gửi OTP về email (hết hạn 10 phút)
+ */
+export const sendOtp = async (
+  email: string
+): Promise<OtpResponse> => {
+  const res = await axiosInstance.post<OtpResponse>('/auth/send-otp', { email });
+  return res.data;
 };
 
-export const loginUser = async (credentials: UserLoginData): Promise<AuthResponse> => {
-  try {
-    const response = await axiosInstance.post('/auth/login', credentials);
-    return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.data) {
-      throw new Error(error.response.data.message || error.response.data.error || 'Lỗi đăng nhập');
-    }
-    throw new Error('Lỗi kết nối hoặc lỗi không xác định khi đăng nhập.');
-  }
+/**
+ * Xác thực mã OTP đã gửi
+ */
+export const verifyOtp = async (
+  email: string,
+  code: string
+): Promise<OtpResponse> => {
+  const res = await axiosInstance.post<OtpResponse>('/auth/verify-otp', { email, code });
+  return res.data;
 };
 
+/** Đăng ký chủ trọ sau OTP */
+export const registerUser = async (
+  userData: UserRegisterData
+): Promise<AuthResponse> => {
+  const response = await axiosInstance.post<AuthResponse>('/auth/register-landlord', userData);
+  return response.data;
+};
+
+/** Đăng nhập */
+export const loginUser = async (
+  credentials: UserLoginData
+): Promise<AuthResponse> => {
+  const response = await axiosInstance.post<AuthResponse>('/auth/login', credentials);
+  return response.data;
+};
+
+/** Lấy thông tin người dùng hiện tại */
 export const getMe = async (): Promise<AuthResponse> => {
-    try {
-        const response = await axiosInstance.get('/auth/me');
-        return response.data;
-    } catch (error: any) {
-        if (error.response && error.response.data) {
-            throw new Error(error.response.data.message || 'Không thể lấy thông tin người dùng.');
-        }
-        throw new Error('Lỗi kết nối hoặc lỗi không xác định.');
-    }
+  const response = await axiosInstance.get<AuthResponse>('/auth/me');
+  return response.data;
 };

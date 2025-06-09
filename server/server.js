@@ -61,6 +61,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // Phục vụ static files cho client và uploads
+app.use("/api/auth", require("./routes/authRoutes"));
 app.use(express.static(path.join(__dirname, "../client/build")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.get("*", (req, res) => {
@@ -81,7 +82,7 @@ if (!isTest) {
   connection.connect((err) => {
     if (err) {
       console.error("❌ Kết nối RDS thất bại:", err);
-        return;
+      return;
     }
     console.log("✅ Kết nối thành công đến RDS!");
     connection.end();
@@ -100,7 +101,9 @@ if (!isTest) {
     ServiceUsage.sync(),
   ])
     .then(() => {
-      console.log("✅ Đã sync các bảng hóa đơn, dịch vụ, thanh toán, giá, và sử dụng dịch vụ...");
+      console.log(
+        "✅ Đã sync các bảng hóa đơn, dịch vụ, thanh toán, giá, và sử dụng dịch vụ..."
+      );
       app.listen(5000, () => {
         console.log("✅ Server đang chạy tại http://localhost:5000");
       });
