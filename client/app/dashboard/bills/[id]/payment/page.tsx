@@ -1,9 +1,8 @@
-"use client"
+'use client';
 
 import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import DashboardLayout from "@/components/dashboard/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,45 +12,127 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, ArrowLeft } from "lucide-react"
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
+import { getInvoiceById, createPayment, getPaymentMethods } from '@/services/invoiceService';
+import { IInvoice } from '@/types/invoice';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 
 export default function BillPaymentPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [paymentAmount, setPaymentAmount] = useState<string>("")
+  const [invoice, setInvoice] = useState<IInvoice | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<{ MaPTTT: number; TenPTTT: string }[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Giả lập dữ liệu hóa đơn
-  const bill = {
-    id: params.id,
-    contractId: "HD001",
-    room: "P101",
-    property: "Nhà trọ Minh Tâm",
-    tenant: "Nguyễn Văn B",
-    period: "01/04/2025 - 30/04/2025",
-    createdDate: "01/04/2025",
-    dueDate: "10/05/2025",
-    total: 3250000,
-    paid: 0,
-    remaining: 3250000,
-    status: "unpaid",
-    isOverdue: false,
-  }
+  // Form states
+  const [maPTTT, setMaPTTT] = useState<string>(''); // Selected payment method ID
+  const [maGiaoDich, setMaGiaoDich] = useState<string>('');
+  const [ghiChu, setGhiChu] = useState<string>('');
+
+  const invoiceId = Number(params.id);
+
+  useEffect(() => {
+    if (isNaN(invoiceId)) {
+      toast({ title: "Lỗi", description: "Mã hóa đơn không hợp lệ.", variant: "destructive" });
+      router.push('/dashboard/bills');
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [fetchedInvoice, fetchedPaymentMethods] = await Promise.all([
+          getInvoiceById(invoiceId),
+          getPaymentMethods()
+        ]);
+        setInvoice(fetchedInvoice);
+        setPaymentMethods(fetchedPaymentMethods);
+        // Set default payment method if available
+        if (fetchedPaymentMethods.length > 0) {
+          setMaPTTT(String(fetchedPaymentMethods[0].MaPTTT));
+        }
+      } catch (error: any) {
+        toast({
+          title: "Lỗi",
+          description: error.message || "Không thể tải thông tin hóa đơn hoặc phương thức thanh toán.",
+          variant: "destructive",
+        });
+        router.push(`/dashboard/bills/${invoiceId}`); // Redirect back to invoice details
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [invoiceId, router, toast]);
+
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+    e.preventDefault();
+    if (!invoice) return;
 
-    // Giả lập thanh toán hóa đơn
-    setTimeout(() => {
-      setIsSubmitting(false)
+    if (!maPTTT) {
+      toast({ title: "Lỗi", description: "Vui lòng chọn phương thức thanh toán.", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // As per spec v2.0, payment is a one-time full payment of TongTienPhaiTra
+      const amountToPay = invoice.TongTienPhaiTra; // Total amount due
+
+      await createPayment({
+        MaHoaDon: invoice.MaHoaDon,
+        SoTien: amountToPay,
+        MaPTTT: Number(maPTTT),
+        MaGiaoDich: maGiaoDich || undefined,
+        GhiChu: ghiChu || undefined,
+      });
+
       toast({
         title: "Thanh toán thành công",
-        description: "Hóa đơn đã được thanh toán thành công",
-      })
-      router.push(`/dashboard/bills/${params.id}`)
-    }, 1500)
+        description: `Hóa đơn #${invoice.MaHoaDon} đã được thanh toán đủ.`,
+      });
+      router.push(`/dashboard/bills/${invoice.MaHoaDon}`);
+      router.refresh(); // Refresh the page to show updated status
+    } catch (error: any) {
+      toast({
+        title: "Thanh toán thất bại",
+        description: error.message || "Đã xảy ra lỗi khi ghi nhận thanh toán.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading || !invoice) {
+    return (
+      <DashboardLayout>
+        <div className="mx-auto max-w-2xl space-y-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Skeleton className="h-10 w-10 mr-2 rounded-md" />
+            <Skeleton className="h-8 w-48" />
+          </div>
+          <Card>
+            <CardHeader><Skeleton className="h-7 w-1/2 mb-1" /><Skeleton className="h-4 w-3/4" /></CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+            <CardFooter className="flex justify-end gap-2">
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-32" />
+            </CardFooter>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
   }
+
+  const representativeTenant = invoice.contract?.occupants?.find(o => o.LaNguoiDaiDien)?.tenant;
 
   return (
     <DashboardLayout>
@@ -71,9 +152,9 @@ export default function BillPaymentPage({ params }: { params: { id: string } }) 
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-medium">Mã hóa đơn: {bill.id}</h3>
-                <Badge variant={bill.isOverdue ? "destructive" : "secondary"}>
-                  {bill.isOverdue ? "Quá hạn" : "Chưa thanh toán"}
+                <h3 className="font-medium">Mã hóa đơn: {invoice.MaHoaDon}</h3>
+                <Badge variant={invoice.TrangThaiThanhToan === 'Quá hạn' ? "destructive" : "secondary"}>
+                  {invoice.TrangThaiThanhToan}
                 </Badge>
               </div>
 
@@ -82,117 +163,116 @@ export default function BillPaymentPage({ params }: { params: { id: string } }) 
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Phòng:</span>
                     <span>
-                      {bill.room} - {bill.property}
+                      {invoice.contract?.room?.TenPhong} - {invoice.contract?.room?.property?.TenNhaTro}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Người thuê:</span>
-                    <span>{bill.tenant}</span>
+                    <span>{representativeTenant?.HoTen || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Kỳ thanh toán:</span>
-                    <span>{bill.period}</span>
+                    <span>{format(new Date(invoice.TuNgay), 'dd/MM/yyyy')} - {format(new Date(invoice.DenNgay), 'dd/MM/yyyy')}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Hạn thanh toán:</span>
-                    <span className={bill.isOverdue ? "text-red-500 font-medium flex items-center gap-1" : ""}>
-                      {bill.isOverdue && <AlertCircle className="h-3 w-3" />}
-                      {bill.dueDate}
+                    <span className={invoice.TrangThaiThanhToan === 'Quá hạn' ? "text-red-500 font-medium flex items-center gap-1" : ""}>
+                      {invoice.TrangThaiThanhToan === 'Quá hạn' && <AlertCircle className="h-3 w-3" />}
+                      {format(new Date(invoice.NgayHanThanhToan), 'dd/MM/yyyy')}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tổng tiền:</span>
-                    <span>{bill.total.toLocaleString("vi-VN")} VNĐ</span>
+                    <span className="text-muted-foreground">Tổng tiền phải trả:</span>
+                    <span>{invoice.TongTienPhaiTra.toLocaleString("vi-VN")} VNĐ</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Đã thanh toán:</span>
-                    <span>{bill.paid.toLocaleString("vi-VN")} VNĐ</span>
-                  </div>
+                  {/* Since payment is full, paid/remaining are no longer distinct in this view */}
                   <div className="flex justify-between font-medium">
-                    <span>Còn lại:</span>
-                    <span>{bill.remaining.toLocaleString("vi-VN")} VNĐ</span>
+                    <span>Số tiền cần thanh toán:</span>
+                    <span className="text-lg text-primary">{invoice.TongTienPhaiTra.toLocaleString("vi-VN")} VNĐ</span>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <form onSubmit={handleSubmit}>
+          {invoice.TrangThaiThanhToan === 'Đã thanh toán' ? (
             <Card>
-              <CardHeader>
-                <CardTitle>Thông tin thanh toán</CardTitle>
-                <CardDescription>Nhập thông tin chi tiết về thanh toán</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="amount">
-                    Số tiền thanh toán <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    placeholder="Nhập số tiền thanh toán"
-                    min="0"
-                    max={bill.remaining}
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    required
-                  />
-                  <div className="flex justify-between text-xs">
-                    <span>Tối thiểu: 0 VNĐ</span>
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-xs"
-                      onClick={() => setPaymentAmount(bill.remaining.toString())}
-                    >
-                      Thanh toán đủ: {bill.remaining.toLocaleString("vi-VN")} VNĐ
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="method">
-                    Phương thức thanh toán <span className="text-red-500">*</span>
-                  </Label>
-                  <Select required>
-                    <SelectTrigger id="method">
-                      <SelectValue placeholder="Chọn phương thức thanh toán" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Tiền mặt</SelectItem>
-                      <SelectItem value="bank">Chuyển khoản</SelectItem>
-                      <SelectItem value="momo">Ví MoMo</SelectItem>
-                      <SelectItem value="zalopay">ZaloPay</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="paymentDate">
-                    Ngày thanh toán <span className="text-red-500">*</span>
-                  </Label>
-                  <Input id="paymentDate" type="date" required defaultValue={new Date().toISOString().split("T")[0]} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="note">Ghi chú</Label>
-                  <Textarea id="note" placeholder="Nhập ghi chú (nếu có)" />
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => router.back()}>
-                  Hủy
-                </Button>
-                <Button type="submit" disabled={isSubmitting || !paymentAmount}>
-                  {isSubmitting ? "Đang xử lý..." : "Xác nhận thanh toán"}
-                </Button>
-              </CardFooter>
+                <CardContent className="py-8 text-center text-green-600 font-semibold">
+                    Hóa đơn này đã được thanh toán đủ.
+                </CardContent>
             </Card>
-          </form>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ghi nhận thanh toán</CardTitle>
+                  <CardDescription>Xác nhận khoản thanh toán từ khách thuê.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">
+                      Số tiền thanh toán (VNĐ) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="amount"
+                      type="text" // Use text to display formatted currency, input type number removes formatting
+                      value={invoice.TongTienPhaiTra.toLocaleString("vi-VN")}
+                      readOnly // Amount is fixed as per spec (full payment)
+                      disabled
+                      className="font-bold text-lg"
+                    />
+                     <p className="text-xs text-muted-foreground">Số tiền này là tổng số tiền cần thanh toán cho hóa đơn.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="method">
+                      Phương thức thanh toán <span className="text-red-500">*</span>
+                    </Label>
+                    <Select value={maPTTT} onValueChange={setMaPTTT} required>
+                      <SelectTrigger id="method">
+                        <SelectValue placeholder="Chọn phương thức thanh toán" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethods.map(method => (
+                          <SelectItem key={method.MaPTTT} value={String(method.MaPTTT)}>{method.TenPTTT}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="maGiaoDich">Mã giao dịch (Nếu có)</Label>
+                    <Input
+                      id="maGiaoDich"
+                      placeholder="Nhập mã giao dịch (ví dụ: chuyển khoản ngân hàng)"
+                      value={maGiaoDich}
+                      onChange={(e) => setMaGiaoDich(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="note">Ghi chú</Label>
+                    <Textarea
+                      id="note"
+                      placeholder="Nhập ghi chú (nếu có)"
+                      value={ghiChu}
+                      onChange={(e) => setGhiChu(e.target.value)}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={() => router.back()}>
+                    Hủy
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting || !maPTTT}>
+                    {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang xử lý...</> : "Xác nhận thanh toán"}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </form>
+          )}
         </div>
       </div>
     </DashboardLayout>
