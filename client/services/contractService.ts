@@ -1,17 +1,16 @@
-// file: client/services/contractService.ts
-
 import api from '@/lib/axios';
 import { ApiResponse } from '@/types/api';
 import { IContract, IContractPayload } from '@/types/contract';
 
 // Lấy danh sách hợp đồng (có thể lọc)
-export const getContracts = async (params?: { propertyId?: string, status?: string, search?: string }): Promise<IContract[]> => {
+// SỬA ĐỔI: Thay đổi tên tham số `roomId` thành `MaPhong`
+export const getContracts = async (params?: { MaPhong?: string, status?: string, search?: string }): Promise<IContract[]> => {
   const response = await api.get<ApiResponse<{ contracts: IContract[] }>>('/contracts', { params });
   return response.data.data.contracts;
 };
 
 // Lấy chi tiết một hợp đồng bằng ID
-export const getContractById = async (id: number): Promise<IContract> => {
+export const getContractById = async (id: number, user: any): Promise<IContract> => { // Added user param for consistency
   const response = await api.get<ApiResponse<{ contract: IContract }>>(`/contracts/${id}`);
   return response.data.data.contract;
 };
