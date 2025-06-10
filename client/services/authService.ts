@@ -34,3 +34,10 @@ export const getMe = async (): Promise<AuthResponse> => {
   const res = await axiosInstance.get<AuthResponse>('/auth/me');
   return res.data;
 };
+
+export function getAccessToken(): string | null {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("accessToken");
+  }
+  return null;
+}

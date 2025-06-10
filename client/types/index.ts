@@ -4,3 +4,4 @@ export * from './room';
 export * from './tenant';
 export * from './contract';
 export * from './service';
+export * from './electricWaterUsage';
