@@ -1,6 +1,7 @@
 "use client";
 
-import type React from "react"; // Không cần thiết với Next.js mới, nhưng giữ lại cũng không sao
+import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,204 +9,306 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useState, FormEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast"; // Đảm bảo import đúng từ thư mục ui
-import { registerUser } from '@/services/authService';
-import type { UserRegisterData } from '@/types/auth';
+import { useToast } from "@/components/ui/use-toast";
+import { sendOtp, verifyOtp, registerUser } from "@/services/authService";
+import type { UserRegisterData } from "@/types/auth";
 
 export default function RegisterPage() {
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
+  const [step, setStep] = useState<"email"|"otp"|"form">("email");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Dữ liệu
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpToken, setOtpToken] = useState("");
+
+  const [errors, setErrors] = useState<Record<string,string>>({});
+
+  function validateForm() {
+  const newErrors: Record<string,string> = {};
+  if (!tenDangNhap || tenDangNhap.trim().length < 4) {
+    newErrors.tenDangNhap = 'Tên đăng nhập tối thiểu 4 ký tự';
+  }
+  if (!hoTen || hoTen.trim() === '') {
+    newErrors.hoTen = 'Họ và tên không được để trống';
+  }
+  if (!matKhau || matKhau.length < 6) {
+    newErrors.matKhau = 'Mật khẩu tối thiểu 6 ký tự';
+  }
+  if (matKhau !== confirmPassword) {
+    newErrors.confirmPassword = 'Xác nhận mật khẩu không khớp';
+  }
+  if (!/^[0-9]{10}$/.test(soDienThoai)) {
+    newErrors.soDienThoai = 'Số điện thoại phải gồm 10 chữ số';
+  }
+  if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+    newErrors.email = 'Email không hợp lệ';
+  }
+  if (cccd && !/^[0-9]{12}$/.test(cccd)) {
+    newErrors.cccd = 'CCCD phải gồm 12 chữ số';
+  }
+  if (!gioiTinh) {
+    newErrors.gioiTinh = 'Vui lòng chọn giới tính';
+  }
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+}
+  // Form chủ trọ
   const [tenDangNhap, setTenDangNhap] = useState("");
+  const [hoTen, setHoTen] = useState("");
   const [matKhau, setMatKhau] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loaiTaiKhoan, setLoaiTaiKhoan] = useState<'Chủ trọ' | 'Khách thuê'>("Khách thuê");
-  const [hoTen, setHoTen] = useState("");
-  const [cccd, setCccd] = useState("");
-  const [ngaySinh, setNgaySinh] = useState(""); // Format YYYY-MM-DD
-  const [gioiTinh, setGioiTinh] = useState<'Nam' | 'Nữ' | 'Khác' | undefined>(undefined);
   const [soDienThoai, setSoDienThoai] = useState("");
-  const [email, setEmail] = useState("");
-  const [queQuan, setQueQuan] = useState(""); // Cho Khách thuê
+  const [cccd, setCccd] = useState("");
+  const [ngaySinh, setNgaySinh] = useState("");
+  const [gioiTinh, setGioiTinh] = useState<"Nam"|"Nữ"|"Khác"|undefined>(undefined);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  // 1) Gửi OTP - Cập nhật để lưu token
+  const handleSendOtp = async () => {
+    if (!email) return toast({ title: "Lỗi", description: "Nhập email.", variant: "destructive" });
     setIsLoading(true);
+    try {
+      // ---- LƯU LẠI TOKEN TỪ RESPONSE ----
+      const response = await sendOtp(email);
+      if (response.otpToken) {
+        setOtpToken(response.otpToken); // Lưu token vào state
+        toast({ title: "OTP đã gửi", description: "Kiểm tra email." });
+        setStep("otp");
+      } else {
+        throw new Error("Không nhận được token xác thực.");
+      }
+    } catch (err: any) {
+      toast({ title: "Gửi OTP thất bại", description: err.message, variant: "destructive" });
+    } finally { setIsLoading(false); }
+  };
 
+  // 2) Xác thực OTP - Cập nhật để gửi token
+  const handleVerifyOtp = async () => {
+    if (!otp) return toast({ title: "Lỗi", description: "Nhập OTP.", variant: "destructive" });
+    // ---- VALIDATE THÊM TOKEN ----
+    if (!otpToken) return toast({ title: "Lỗi", description: "Thiếu token xác thực. Vui lòng thử lại.", variant: "destructive" });
+    setIsLoading(true);
+    try {
+      // ---- GỬI OTP VÀ TOKEN ĐÃ LƯU ----
+      await verifyOtp(otp, otpToken); 
+      toast({ title: "Xác thực thành công" });
+      setStep("form");
+    } catch (err: any) {
+      toast({ title: "OTP không hợp lệ", description: err.message, variant: "destructive" });
+    } finally { setIsLoading(false); }
+  };
+
+  // 3) Hoàn tất đăng ký (giữ nguyên)
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
     if (matKhau !== confirmPassword) {
-      toast({
-        title: "Lỗi",
-        description: "Mật khẩu xác nhận không khớp.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
+      return toast({ title: "Lỗi", description: "Mật khẩu không khớp.", variant: "destructive" });
     }
-
-    // Backend service `register` của bạn mong muốn MaVaiTro là number
-    // Giả sử: 2 là Chủ trọ, 3 là Khách thuê (cần map từ string 'Chủ trọ'/'Khách thuê')
-    let maVaiTroValue: number;
-    if (loaiTaiKhoan === 'Chủ trọ') {
-      maVaiTroValue = 2; // Cần đảm bảo giá trị này khớp với MaVaiTro trong CSDL của bạn
-    } else if (loaiTaiKhoan === 'Khách thuê') {
-      maVaiTroValue = 3; // Cần đảm bảo giá trị này khớp với MaVaiTro trong CSDL của bạn
-    } else {
-      toast({ title: "Lỗi", description: "Loại tài khoản không hợp lệ.", variant: "destructive" });
-      setIsLoading(false);
-      return;
-    }
-
-    const userData: UserRegisterData = {
+    setIsLoading(true);
+    const data: UserRegisterData = {
       TenDangNhap: tenDangNhap,
       MatKhau: matKhau,
-      // confirmPassword không cần gửi nếu backend không xử lý (controller cũ có xử lý)
-      MaVaiTro: maVaiTroValue, // Gửi MaVaiTro là number
+      MaVaiTro: 2,
       HoTen: hoTen,
       SoDienThoai: soDienThoai,
-      // Các trường tùy chọn, chỉ gửi nếu có giá trị
-      ...(email && { Email: email }),
+      Email: email,
       ...(cccd && { CCCD: cccd }),
       ...(ngaySinh && { NgaySinh: ngaySinh }),
       ...(gioiTinh && { GioiTinh: gioiTinh }),
-      ...(loaiTaiKhoan === 'Khách thuê' && queQuan && { QueQuan: queQuan }),
     };
-
     try {
-      const response = await registerUser(userData);
-      toast({
-        title: "Đăng ký thành công!",
-        description: response.message || "Tài khoản của bạn đã được tạo.",
-      });
-
-      // Backend service 'register' không trả về token, nên chỉ chuyển hướng sang login
+      await registerUser(data);
+      toast({ title: "Đăng ký thành công" });
       router.push("/login");
-
-    } catch (error: any) {
-      toast({
-        title: "Đăng ký thất bại",
-        description: error.message || "Đã có lỗi xảy ra. Vui lòng thử lại.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (err: any) {
+      toast({ title: "Đăng ký thất bại", description: err.message, variant: "destructive" });
+    } finally { setIsLoading(false); }
   };
-
+  
+  // Phần JSX trả về giữ nguyên
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
-      <Card className="w-full max-w-lg"> {/* Tăng max-w một chút để chứa nhiều trường hơn */}
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Đăng ký tài khoản</CardTitle>
-          <CardDescription>Nhập thông tin để tạo tài khoản mới</CardDescription>
+      <Card className="w-full max-w-lg">
+        <CardHeader className="text-center space-y-1">
+          <CardTitle className="text-2xl">Đăng ký chủ trọ</CardTitle>
+          <CardDescription>
+            {step === "email" ? "Nhập email để nhận OTP"
+             : step === "otp"   ? "Nhập mã OTP"
+             :                        "Hoàn tất thông tin"}
+          </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+
+        <CardContent>
+          {step === "email" && (
+            <div className="space-y-4">
+              <Label htmlFor="email">Email *</Label>
+              <Input id="email" type="email" placeholder="example@mail.com"
+                value={email} onChange={e=>setEmail(e.target.value)} />
+              <Button type="button" onClick={handleSendOtp} disabled={isLoading} className="w-full">Gửi mã OTP</Button>
+            </div>
+          )}
+
+          {step === "otp" && (
+            <div className="space-y-4">
+              <Label htmlFor="otp">Mã OTP *</Label>
+              <Input
+                id="otp"
+                placeholder="Nhập mã 6 chữ số"
+                value={otp}
+                onChange={e => setOtp(e.target.value)}
+              />
+              <Button
+                type="button"
+                onClick={handleVerifyOtp}
+                disabled={isLoading}
+                className="w-full"
+              >
+                Xác thực OTP
+              </Button>
+            </div>
+          )}
+          
+          {/* Form đăng ký giữ nguyên không đổi */}
+          {step === "form" && (
+            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+              {/* ...các input của form... */}
+                 {/* Tên đăng nhập */}
+                 <div className="space-y-2">
                 <Label htmlFor="tenDangNhap">Tên đăng nhập *</Label>
-                <Input id="tenDangNhap" placeholder="Ít nhất 4 ký tự" required value={tenDangNhap} onChange={(e) => setTenDangNhap(e.target.value)} />
+                <Input
+                  id="tenDangNhap"
+                  placeholder="Ít nhất 4 ký tự"
+                  required
+                  value={tenDangNhap}
+                  onChange={e => setTenDangNhap(e.target.value)}
+                />
               </div>
+
+              {/* Họ và tên */}
               <div className="space-y-2">
                 <Label htmlFor="hoTen">Họ và tên *</Label>
-                <Input id="hoTen" placeholder="Nguyễn Văn A" required value={hoTen} onChange={(e) => setHoTen(e.target.value)} />
+                <Input
+                  id="hoTen"
+                  placeholder="Nguyễn Văn A"
+                  required
+                  value={hoTen}
+                  onChange={e => setHoTen(e.target.value)}
+                />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Mật khẩu */}
               <div className="space-y-2">
                 <Label htmlFor="matKhau">Mật khẩu *</Label>
-                <Input id="matKhau" type="password" placeholder="Ít nhất 6 ký tự" required value={matKhau} onChange={(e) => setMatKhau(e.target.value)} />
+                <Input
+                  id="matKhau"
+                  type="password"
+                  placeholder="Ít nhất 6 ký tự"
+                  required
+                  value={matKhau}
+                  onChange={e => setMatKhau(e.target.value)}
+                />
               </div>
+
+              {/* Xác nhận mật khẩu */}
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Xác nhận mật khẩu *</Label>
-                <Input id="confirmPassword" type="password" placeholder="Nhập lại mật khẩu" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Nhập lại mật khẩu"
+                  required
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Loại tài khoản *</Label>
-              <RadioGroup value={loaiTaiKhoan} onValueChange={(value: 'Chủ trọ' | 'Khách thuê') => setLoaiTaiKhoan(value)} className="flex gap-4 pt-2">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Chủ trọ" id="landlord" />
-                  <Label htmlFor="landlord">Chủ trọ</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Khách thuê" id="tenant" />
-                  <Label htmlFor="tenant">Khách thuê</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Số điện thoại */}
               <div className="space-y-2">
                 <Label htmlFor="soDienThoai">Số điện thoại *</Label>
-                <Input id="soDienThoai" placeholder="09xxxxxxxx" required value={soDienThoai} onChange={(e) => setSoDienThoai(e.target.value)} />
+                <Input
+                  id="soDienThoai"
+                  placeholder="09xxxxxxxx"
+                  required
+                  value={soDienThoai}
+                  onChange={e => setSoDienThoai(e.target.value)}
+                />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="example@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Email (repeat) hoặc ẩn */}
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <p className="px-3 py-2 bg-gray-50 rounded">{email}</p>
+                <input type="hidden" name="Email" value={email} />
+              </div>
+
+              {/* CCCD */}
               <div className="space-y-2">
                 <Label htmlFor="cccd">CCCD</Label>
-                <Input id="cccd" placeholder="Số căn cước công dân" value={cccd} onChange={(e) => setCccd(e.target.value)} />
+                <Input
+                  id="cccd"
+                  placeholder="Số căn cước"
+                  value={cccd}
+                  onChange={e => setCccd(e.target.value)}
+                />
               </div>
+
+              {/* Ngày sinh */}
               <div className="space-y-2">
-                <Label htmlFor="ngaySinh">Ngày Sinh</Label>
-                <Input id="ngaySinh" type="date" value={ngaySinh} onChange={(e) => setNgaySinh(e.target.value)} />
+                <Label htmlFor="ngaySinh">Ngày sinh</Label>
+                <Input
+                  id="ngaySinh"
+                  type="date"
+                  value={ngaySinh}
+                  onChange={e => setNgaySinh(e.target.value)}
+                />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Giới tính</Label>
-              <RadioGroup value={gioiTinh} onValueChange={(value: 'Nam' | 'Nữ' | 'Khác') => setGioiTinh(value)} className="flex gap-4 pt-2">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Nam" id="male" />
-                  <Label htmlFor="male">Nam</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Nữ" id="female" />
-                  <Label htmlFor="female">Nữ</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Khác" id="other" />
-                  <Label htmlFor="other">Khác</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {loaiTaiKhoan === 'Khách thuê' && (
-              <div className="space-y-2">
-                <Label htmlFor="queQuan">Quê quán (Khách thuê)</Label>
-                <Input id="queQuan" placeholder="Ví dụ: TP. Hồ Chí Minh" value={queQuan} onChange={(e) => setQueQuan(e.target.value)} />
+              {/* Giới tính */}
+              <div className="col-span-2 space-y-2">
+                <Label>Giới tính</Label>
+                <RadioGroup
+                  value={gioiTinh}
+                  onValueChange={v => setGioiTinh(v as any)}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Nam" id="male" />
+                    <Label htmlFor="male">Nam</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Nữ" id="female" />
+                    <Label htmlFor="female">Nữ</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Khác" id="other" />
+                    <Label htmlFor="other">Khác</Label>
+                  </div>
+                </RadioGroup>
               </div>
-            )}
-             {/* Bạn có thể thêm các trường khác cho Chủ trọ nếu API service `register` yêu cầu */}
 
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Đang xử lý..." : "Đăng ký"}
-            </Button>
-            <div className="text-center text-sm">
-              Đã có tài khoản?{" "}
-              <Link href="/login" className="text-primary hover:underline">
-                Đăng nhập
-              </Link>
-            </div>
+              {/* Button hoàn tất */}
+              <div className="col-span-2">
+                <Button type="submit" disabled={isLoading} className="w-full">
+                  {isLoading ? "Đang xử lý..." : "Hoàn tất đăng ký"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </CardContent>
+
+        {step !== "form" && (
+          <CardFooter className="text-center">
+            <Button variant="link" onClick={()=>router.push("/login")}>Đã có tài khoản? Đăng nhập</Button>
           </CardFooter>
-        </form>
+        )}
       </Card>
     </div>
   );

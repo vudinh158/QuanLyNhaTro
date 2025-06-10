@@ -1,3 +1,9 @@
+
+export interface OtpResponse {
+    message: string;
+    otpToken?: string;
+}
+
 export interface UserRegisterData {
     TenDangNhap: string;
     MatKhau: string;
