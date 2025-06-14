@@ -91,6 +91,8 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
     const [tenants, setTenants] = useState<Tenant[]>([]); // Danh sách khách thuê hiện có
     const [services, setServices] = useState<IService[]>([]);
     const [isNewTenantDialogOpen, setIsNewTenantDialogOpen] = useState(false);
+    const [currentRoomDisplay, setCurrentRoomDisplay] = useState<string>('');
+
 
     const form = useForm<ContractFormValues>({
         resolver: zodResolver(contractFormSchema),
@@ -118,7 +120,7 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
                 TienCoc: initialData.TienCoc,
                 TienThueThoaThuan: initialData.TienThueThoaThuan,
                 KyThanhToan: initialData.KyThanhToan,
-                HanThanhToan: initialData.HanThue, // FIX: Should be HanThanhToan from initialData.HanThanhToan
+                HanThanhToan: initialData.HanThanhToan, // FIX: Should be HanThanhToan from initialData.HanThanhToan
                 // TrangThai: initialData.TrangThai, // Giữ lại nếu muốn hiển thị khi edit, nhưng vẫn do backend quyết định trạng thái thực khi update
                 GhiChu: initialData.GhiChu || '',
                 // Đối với occupants khi edit, chúng luôn có MaKhachThue
@@ -129,6 +131,13 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
                 })),
                 registeredServices: initialData.registeredServices.map(s => s.MaDV),
             });
+            if (initialData.room && initialData.room.property) {
+                setCurrentRoomDisplay(`${initialData.room.TenPhong} - ${initialData.room.property.TenNhaTro}`);
+            } else {
+                // Nếu không có room hoặc property, gán một giá trị mặc định để debug
+                setCurrentRoomDisplay('Dữ liệu phòng không đầy đủ');
+                console.warn('InitialData thiếu thông tin room/property:', initialData);
+            }
         }
     }, [initialData, form]);
 
@@ -185,7 +194,7 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
         // Nếu là khách thuê cũ, kiểm tra theo MaKhachThue.
         // Nếu là khách thuê mới, không có MaKhachThue, nhưng cũng không thể trùng lặp về thông tin (nên kiểm tra duy nhất ở backend)
         if (occupantToAdd.MaKhachThue && fields.some(field => field.MaKhachThue === occupantToAdd.MaKhachThue)) {
-            toast({ title: "Thông báo", description: "Khách thuê đã có trong danh sách.", variant: "warning" });
+            toast({ title: "Thông báo", description: "Khách thuê đã có trong danh sách.", variant: "default" });
             return;
         }
 
@@ -261,27 +270,39 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
                         <Card>
                             <CardHeader><CardTitle>Thông tin chính</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
-                                <FormField
-                                    control={form.control} name="MaPhong"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Phòng cho thuê</FormLabel>
-                                            <Select onValueChange={(value) => handleRoomSelect(Number(value))} value={String(field.value || '')}>
-                                                <FormControl>
-                                                    <SelectTrigger><SelectValue placeholder="Chọn một phòng..." /></SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {availableRooms.map(room => (
-                                                        <SelectItem key={room.MaPhong} value={String(room.MaPhong)}>
-                                                            {room.TenPhong} - {room.property?.TenNhaTro || 'N/A'}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                {initialData ? ( // If in edit mode, display room as read-only
+                                    <FormItem>
+                                        <FormLabel>Phòng cho thuê</FormLabel>
+                                        <FormControl>
+                                            <Input value={currentRoomDisplay} readOnly disabled />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Phòng đã chọn cho hợp đồng này. Không thể thay đổi khi chỉnh sửa.
+                                        </FormDescription>
+                                    </FormItem>
+                                ) : ( // If in create mode, display the Select dropdown
+                                    <FormField
+                                        control={form.control} name="MaPhong"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Phòng cho thuê</FormLabel>
+                                                <Select onValueChange={(value) => handleRoomSelect(Number(value))} value={String(field.value || '')}>
+                                                    <FormControl>
+                                                        <SelectTrigger><SelectValue placeholder="Chọn một phòng..." /></SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {availableRooms.map(room => (
+                                                            <SelectItem key={room.MaPhong} value={String(room.MaPhong)}>
+                                                                {room.TenPhong} - {room.property?.TenNhaTro || 'N/A'}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                    <FormMessage />
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <FormField control={form.control} name="NgayBatDau" render={({ field }) => (
                                         <FormItem className="flex flex-col">

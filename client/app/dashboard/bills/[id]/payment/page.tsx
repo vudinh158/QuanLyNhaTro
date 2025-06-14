@@ -110,7 +110,7 @@ export default function BillPaymentPage({ params }: { params: { id: string } }) 
 
   if (loading || !invoice) {
     return (
-      <DashboardLayout>
+    //   <DashboardLayout>
         <div className="mx-auto max-w-2xl space-y-6">
           <div className="flex items-center gap-2 mb-6">
             <Skeleton className="h-10 w-10 mr-2 rounded-md" />
@@ -128,7 +128,7 @@ export default function BillPaymentPage({ params }: { params: { id: string } }) 
             </CardFooter>
           </Card>
         </div>
-      </DashboardLayout>
+    //   </DashboardLayout>
     );
   }
 

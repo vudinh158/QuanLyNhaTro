@@ -57,7 +57,7 @@ export default function ContractDetailPage() {
                         <CardHeader><CardTitle>Thông tin chính</CardTitle></CardHeader>
                         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <DetailItem icon={<FileText size={20} />} label="Trạng thái" value={getStatusBadge(contract.TrangThai)} />
-                            <DetailItem icon={<Home size={20} />} label="Phòng" value={`${contract.room.TenPhong} - ${contract.property.TenNhaTro}`} />
+                            <DetailItem icon={<Home size={20} />} label="Phòng" value={`${contract.room?.TenPhong || 'N/A'} - ${contract.room?.property?.TenNhaTro || 'N/A'}`} />
                             <DetailItem icon={<User size={20} />} label="Người đại diện" value={representative?.HoTen || 'N/A'} />
                             <DetailItem icon={<Calendar size={20} />} label="Thời hạn" value={`${format(new Date(contract.NgayBatDau), 'dd/MM/yyyy')} - ${format(new Date(contract.NgayKetThuc), 'dd/MM/yyyy')}`} />
                             <DetailItem icon={<CircleDollarSign size={20} />} label="Tiền thuê" value={`${contract.TienThueThoaThuan.toLocaleString()} VNĐ`} />

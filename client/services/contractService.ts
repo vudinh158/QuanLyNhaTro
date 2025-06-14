@@ -10,7 +10,7 @@ export const getContracts = async (params?: { MaPhong?: string, status?: string,
 };
 
 // Lấy chi tiết một hợp đồng bằng ID
-export const getContractById = async (id: number, user: any): Promise<IContract> => { // Added user param for consistency
+export const getContractById = async (id: number): Promise<IContract> => { // Added user param for consistency
   const response = await api.get<ApiResponse<{ contract: IContract }>>(`/contracts/${id}`);
   return response.data.data.contract;
 };
