@@ -1,98 +1,119 @@
+"use client"
+
+import { useEffect, useState, useMemo } from "react"
+import { format } from "date-fns"
 import DashboardLayout from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Zap, Droplets } from "lucide-react"
+import { Zap, Droplets, AlertCircle } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import TenantUtilitiesLoading from "./loading" // Import component skeleton
+import { getElectricWaterUsages } from "@/services/dienNuocService"
+import { getCurrentContract } from "@/services/contractService"
+import { IElectricWaterUsage } from "@/types/electricWaterUsage"
+import { IContract } from "@/types/contract"
 
 export default function TenantUtilitiesPage() {
-  // Dữ liệu mẫu cho điện nước
-  const electricityData = [
-    {
-      id: 1,
-      month: "Tháng 4/2025",
-      previousReading: 1250,
-      currentReading: 1400,
-      consumption: 150,
-      rate: 4000,
-      total: 600000,
-      readingDate: "30/04/2025",
-      status: "Đã thanh toán",
-    },
-    {
-      id: 2,
-      month: "Tháng 3/2025",
-      previousReading: 1100,
-      currentReading: 1250,
-      consumption: 150,
-      rate: 4000,
-      total: 600000,
-      readingDate: "31/03/2025",
-      status: "Đã thanh toán",
-    },
-    {
-      id: 3,
-      month: "Tháng 2/2025",
-      previousReading: 950,
-      currentReading: 1100,
-      consumption: 150,
-      rate: 4000,
-      total: 600000,
-      readingDate: "29/02/2025",
-      status: "Đã thanh toán",
-    },
-  ]
+  // State để lưu trữ dữ liệu từ API
+  const [contractInfo, setContractInfo] = useState<IContract | null>(null)
+  const [electricData, setElectricData] = useState<IElectricWaterUsage[]>([])
+  const [waterData, setWaterData] = useState<IElectricWaterUsage[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("all")
+  const { toast } = useToast()
 
-  const waterData = [
-    {
-      id: 1,
-      month: "Tháng 4/2025",
-      previousReading: 50,
-      currentReading: 60,
-      consumption: 10,
-      rate: 15000,
-      total: 150000,
-      readingDate: "30/04/2025",
-      status: "Đã thanh toán",
-    },
-    {
-      id: 2,
-      month: "Tháng 3/2025",
-      previousReading: 40,
-      currentReading: 50,
-      consumption: 10,
-      rate: 15000,
-      total: 150000,
-      readingDate: "31/03/2025",
-      status: "Đã thanh toán",
-    },
-    {
-      id: 3,
-      month: "Tháng 2/2025",
-      previousReading: 30,
-      currentReading: 40,
-      consumption: 10,
-      rate: 15000,
-      total: 150000,
-      readingDate: "29/02/2025",
-      status: "Đã thanh toán",
-    },
-  ]
+  // Lấy dữ liệu từ server khi component được mount
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        // Gọi đồng thời cả hai API để tăng tốc
+        const [contractRes, usageRes] = await Promise.all([
+          getCurrentContract(),
+          getElectricWaterUsages()
+        ]);
 
+        setContractInfo(contractRes)
+        
+        // Phân loại dữ liệu điện và nước
+        setElectricData(usageRes.filter(item => item.Loai === 'dien'))
+        setWaterData(usageRes.filter(item => item.Loai === 'nuoc'))
+
+      } catch (err: any) {
+        console.error("Failed to fetch utilities data:", err)
+        setError("Không thể tải dữ liệu điện nước. Vui lòng thử lại sau.")
+        toast({
+          title: "Lỗi",
+          description: err.message || "Không thể tải dữ liệu từ server.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    };
+
+    fetchData()
+  }, [toast])
+  
+  // Lọc dữ liệu theo kỳ được chọn
+  const filteredElectricData = useMemo(() => {
+    if (selectedPeriod === "all") return electricData;
+    return electricData.filter(item => `${format(new Date(item.Ky), 'MM-yyyy')}` === selectedPeriod);
+  }, [selectedPeriod, electricData]);
+
+  const filteredWaterData = useMemo(() => {
+    if (selectedPeriod === "all") return waterData;
+    return waterData.filter(item => `${format(new Date(item.Ky), 'MM-yyyy')}` === selectedPeriod);
+  }, [selectedPeriod, waterData]);
+
+  // Tạo danh sách các kỳ duy nhất để hiển thị trong bộ lọc
+  const availablePeriods = useMemo(() => {
+    const allRecords = [...electricData, ...waterData];
+    const periods = new Set(allRecords.map(item => format(new Date(item.Ky), 'MM-yyyy')));
+    return Array.from(periods);
+  }, [electricData, waterData]);
+
+  // Hiển thị skeleton loading
+  if (isLoading) {
+    return <TenantUtilitiesLoading />
+  }
+
+  // Hiển thị thông báo lỗi
+  if (error) {
+    return (
+      
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
+            <h2 className="mt-4 text-xl font-semibold">Đã xảy ra lỗi</h2>
+            <p className="mt-2 text-muted-foreground">{error}</p>
+          </div>
+        </div>
+      
+    )
+  }
+
+  // Giao diện chính
   return (
-    <DashboardLayout userRole="tenant">
+    
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Điện nước</h1>
           <div className="flex items-center gap-2">
-            <Select defaultValue="all">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Chọn kỳ" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả kỳ</SelectItem>
-                <SelectItem value="04-2025">Tháng 4/2025</SelectItem>
-                <SelectItem value="03-2025">Tháng 3/2025</SelectItem>
-                <SelectItem value="02-2025">Tháng 2/2025</SelectItem>
+                {availablePeriods.map(period => (
+                  <SelectItem key={period} value={period}>
+                    Tháng {period.replace('-', '/')}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -101,49 +122,46 @@ export default function TenantUtilitiesPage() {
         <Card>
           <CardHeader>
             <CardTitle>Thông tin phòng</CardTitle>
-            <CardDescription>Thông tin về phòng và hợp đồng thuê hiện tại</CardDescription>
+            <CardDescription>Thông tin về phòng và hợp đồng thuê hiện tại của bạn</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-4">
+            {contractInfo ? (
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <h3 className="font-medium">Thông tin phòng</h3>
                   <div className="grid gap-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Phòng:</span>
-                      <span>P101 - Nhà trọ Minh Tâm</span>
+                      <span>{contractInfo.room?.TenPhong} - {contractInfo.room?.property?.TenNhaTro}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Loại phòng:</span>
-                      <span>Phòng đơn</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Diện tích:</span>
-                      <span>20m²</span>
+                      <span>{contractInfo.room?.roomType?.TenLoai}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="font-medium">Thông tin hợp đồng</h3>
                   <div className="grid gap-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Mã hợp đồng:</span>
-                      <span>HD001</span>
+                      <span>{contractInfo.MaHopDong}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Ngày bắt đầu:</span>
-                      <span>01/01/2025</span>
+                      <span>{format(new Date(contractInfo.NgayBatDau), 'dd/MM/yyyy')}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Ngày kết thúc:</span>
-                      <span>15/05/2025</span>
+                      <span>{format(new Date(contractInfo.NgayKetThuc), 'dd/MM/yyyy')}</span>
                     </div>
+
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Không tìm thấy thông tin hợp đồng đang có hiệu lực.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -158,6 +176,8 @@ export default function TenantUtilitiesPage() {
               Nước
             </TabsTrigger>
           </TabsList>
+
+          {/* Tab Điện */}
           <TabsContent value="electricity" className="space-y-4">
             <Card>
               <CardHeader>
@@ -166,7 +186,7 @@ export default function TenantUtilitiesPage() {
               </CardHeader>
               <CardContent>
                 <div className="rounded-lg border">
-                  <div className="grid grid-cols-8 gap-2 p-3 font-medium text-sm border-b">
+                  <div className="grid grid-cols-7 gap-2 p-3 font-medium text-sm border-b">
                     <div className="col-span-1">Kỳ</div>
                     <div className="col-span-1 text-right">Chỉ số cũ</div>
                     <div className="col-span-1 text-right">Chỉ số mới</div>
@@ -174,34 +194,38 @@ export default function TenantUtilitiesPage() {
                     <div className="col-span-1 text-right">Đơn giá</div>
                     <div className="col-span-1 text-right">Thành tiền</div>
                     <div className="col-span-1">Ngày ghi</div>
-                    <div className="col-span-1">Trạng thái</div>
                   </div>
 
-                  {electricityData.map((item) => (
-                    <div key={item.id} className="grid grid-cols-8 gap-2 p-3 border-b last:border-0 items-center">
-                      <div className="col-span-1">{item.month}</div>
-                      <div className="col-span-1 text-right">{item.previousReading}</div>
-                      <div className="col-span-1 text-right">{item.currentReading}</div>
-                      <div className="col-span-1 text-right">{item.consumption}</div>
-                      <div className="col-span-1 text-right">{item.rate.toLocaleString("vi-VN")} VNĐ</div>
-                      <div className="col-span-1 text-right">{item.total.toLocaleString("vi-VN")} VNĐ</div>
-                      <div className="col-span-1">{item.readingDate}</div>
-                      <div className="col-span-1">{item.status}</div>
-                    </div>
-                  ))}
+                  {filteredElectricData.length > 0 ? (
+                    filteredElectricData.map((item) => (
+                      <div key={item.MaGhiDienNuoc} className="grid grid-cols-7 gap-2 p-3 border-b last:border-0 items-center text-sm">
+                        <div className="col-span-1">{format(new Date(item.Ky), 'MM/yyyy')}</div>
+                        <div className="col-span-1 text-right">{item.ChiSoCu}</div>
+                        <div className="col-span-1 text-right">{item.ChiSoMoi}</div>
+                        <div className="col-span-1 text-right font-medium">{item.SoTieuThu}</div>
+                        <div className="col-span-1 text-right">{item.DonGia?.toLocaleString("vi-VN")} VNĐ</div>
+                        <div className="col-span-1 text-right font-semibold">{item.ThanhTien?.toLocaleString("vi-VN")} VNĐ</div>
+                        <div className="col-span-1">{format(new Date(item.NgayGhi), 'dd/MM/yyyy')}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">Không có dữ liệu.</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Tab Nước */}
           <TabsContent value="water" className="space-y-4">
-            <Card>
+             <Card>
               <CardHeader>
                 <CardTitle>Lịch sử sử dụng nước</CardTitle>
                 <CardDescription>Thông tin chỉ số nước và tiền nước theo từng kỳ</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-lg border">
-                  <div className="grid grid-cols-8 gap-2 p-3 font-medium text-sm border-b">
+                  <div className="grid grid-cols-7 gap-2 p-3 font-medium text-sm border-b">
                     <div className="col-span-1">Kỳ</div>
                     <div className="col-span-1 text-right">Chỉ số cũ</div>
                     <div className="col-span-1 text-right">Chỉ số mới</div>
@@ -209,27 +233,29 @@ export default function TenantUtilitiesPage() {
                     <div className="col-span-1 text-right">Đơn giá</div>
                     <div className="col-span-1 text-right">Thành tiền</div>
                     <div className="col-span-1">Ngày ghi</div>
-                    <div className="col-span-1">Trạng thái</div>
                   </div>
 
-                  {waterData.map((item) => (
-                    <div key={item.id} className="grid grid-cols-8 gap-2 p-3 border-b last:border-0 items-center">
-                      <div className="col-span-1">{item.month}</div>
-                      <div className="col-span-1 text-right">{item.previousReading}</div>
-                      <div className="col-span-1 text-right">{item.currentReading}</div>
-                      <div className="col-span-1 text-right">{item.consumption}</div>
-                      <div className="col-span-1 text-right">{item.rate.toLocaleString("vi-VN")} VNĐ</div>
-                      <div className="col-span-1 text-right">{item.total.toLocaleString("vi-VN")} VNĐ</div>
-                      <div className="col-span-1">{item.readingDate}</div>
-                      <div className="col-span-1">{item.status}</div>
-                    </div>
-                  ))}
+                  {filteredWaterData.length > 0 ? (
+                    filteredWaterData.map((item) => (
+                       <div key={item.MaGhiDienNuoc} className="grid grid-cols-7 gap-2 p-3 border-b last:border-0 items-center text-sm">
+                        <div className="col-span-1">{format(new Date(item.Ky), 'MM/yyyy')}</div>
+                        <div className="col-span-1 text-right">{item.ChiSoCu}</div>
+                        <div className="col-span-1 text-right">{item.ChiSoMoi}</div>
+                        <div className="col-span-1 text-right font-medium">{item.SoTieuThu}</div>
+                        <div className="col-span-1 text-right">{item.DonGia?.toLocaleString("vi-VN")} VNĐ</div>
+                        <div className="col-span-1 text-right font-semibold">{item.ThanhTien?.toLocaleString("vi-VN")} VNĐ</div>
+                        <div className="col-span-1">{format(new Date(item.NgayGhi), 'dd/MM/yyyy')}</div>
+                      </div>
+                    ))
+                  ) : (
+                     <div className="p-4 text-center text-muted-foreground">Không có dữ liệu.</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    
   )
 }

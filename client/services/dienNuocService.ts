@@ -1,6 +1,6 @@
 import api from '@/lib/axios';
 import { ApiResponse } from '@/types/api';
-import { ElectricWaterUsage, CreateElectricWaterUsageData } from '@/types/electricWaterUsage';
+import { ElectricWaterUsage, CreateElectricWaterUsageData, IElectricWaterUsage } from '@/types/electricWaterUsage';
 import { getAccessToken } from './authService';
 
 
@@ -97,4 +97,25 @@ export const deleteDienNuoc = async (id: number): Promise<void> => {
         console.error(`Error deleting electric/water usage record ${id}:`, error.response?.data || error.message);
         throw new Error(error.response?.data?.message || 'Không thể xóa chỉ số điện nước.');
     }
+};
+export const getElectricWaterUsages = async (params?: { roomId?: string }): Promise<IElectricWaterUsage[]> => {
+  try {
+    const response = await api.get<ApiResponse<{ records: IElectricWaterUsage[] }>>('/dien-nuoc', { params });
+    
+    // Kiểm tra và trả về dữ liệu đúng cấu trúc
+    if (response.data && response.data.data && Array.isArray(response.data.data.records)) {
+      return response.data.data.records;
+    }
+    // Nếu server trả về mảng trực tiếp trong data
+    if (response.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+    }
+
+    console.warn("Dữ liệu điện nước trả về không hợp lệ:", response.data);
+    return [];
+
+  } catch (error: any) {
+    console.error("Error fetching electric water usages:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Không thể tải lịch sử điện nước.');
+  }
 };

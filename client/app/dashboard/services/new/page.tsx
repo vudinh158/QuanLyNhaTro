@@ -65,7 +65,7 @@ export default function NewServicePage() {
   }
 
   return (
-    // <DashboardLayout>
+    // 
       <div className="mx-auto max-w-2xl">
         <h1 className="text-2xl font-bold tracking-tight mb-6">Thêm dịch vụ mới</h1>
 
