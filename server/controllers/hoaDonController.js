@@ -107,7 +107,7 @@ exports.getHoaDon = async (req, res, next) => {
     if (!hoaDon) throw new AppError('Không tìm thấy hóa đơn', 404);
 
     if (
-      req.user.TenVaiTro === 'Chủ trọ' &&
+        req.user.role.TenVaiTro=== 'Chủ trọ' &&
       hoaDon.contract?.room?.property?.MaChuTro !== req.user.MaChuTro
     ) {
       throw new AppError('Bạn không có quyền truy cập hóa đơn này', 403);
