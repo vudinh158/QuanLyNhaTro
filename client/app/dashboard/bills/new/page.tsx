@@ -292,7 +292,7 @@ export default function NewBillPage() {
 
   if (authLoading || isLoadingData) {
     return (
-      <DashboardLayout>
+   
         <div className="mx-auto max-w-3xl space-y-6">
           <div className="flex items-center">
             <Skeleton className="h-10 w-10 mr-2 rounded-md" />
@@ -315,13 +315,13 @@ export default function NewBillPage() {
             </CardFooter>
           </Card>
         </div>
-      </DashboardLayout>
+      
     );
   }
 
 
   return (
-    <DashboardLayout>
+
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center mb-6">
           <Button variant="outline" size="icon" asChild className="mr-2">
@@ -663,6 +663,6 @@ export default function NewBillPage() {
           </Tabs>
         </form>
       </div>
-    </DashboardLayout>
+
   )
 }

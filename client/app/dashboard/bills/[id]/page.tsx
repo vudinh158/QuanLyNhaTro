@@ -126,7 +126,7 @@ export default function BillDetailsPage({ params }: { params: { id: string } }) 
 
 
   return (
-    <DashboardLayout>
+    
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -381,6 +381,6 @@ export default function BillDetailsPage({ params }: { params: { id: string } }) 
           </div>
         </div>
       </div>
-    </DashboardLayout>
+
   )
 }

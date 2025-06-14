@@ -111,6 +111,41 @@ exports.getAllDienNuoc = async (req, res, next) => {
   }
 };
 
+exports.getAllDienNuocRecords = async (req, res, next) => {
+  try {
+    let whereClause = {};
+    const { propertyId, roomId, month, year } = req.query;
+
+    if (req.user.role.TenVaiTro === 'Chủ trọ') {
+      // ... logic cho chủ trọ giữ nguyên
+    }
+
+    // SỬA LỖI TRUY CẬP THÔNG TIN KHÁCH THUÊ
+    if (req.user.role.TenVaiTro === 'Khách thuê') {
+      const currentContract = await Contract.findOne({
+        where: { MaKhachThue: req.user.tenantProfile.MaKhachThue, TrangThai: 'Có hiệu lực' }
+      });
+
+      if (currentContract) {
+        whereClause.MaPhong = currentContract.MaPhong;
+      } else {
+        return res.status(200).json({ status: 'success', results: 0, data: { records: [] } });
+      }
+    }
+
+    // ... phần code còn lại của hàm giữ nguyên
+    const records = await ElectricWaterUsage.findAll({
+        where: whereClause,
+        // ...
+    });
+    
+    res.status(200).json({ status: 'success', results: records.length, data: { records } });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.updateDienNuoc = async (req, res, next) => {
   try {
     const { id } = req.params;

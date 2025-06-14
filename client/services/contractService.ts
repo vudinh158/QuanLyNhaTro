@@ -32,3 +32,17 @@ export const terminateContract = async (id: number): Promise<IContract> => {
   const response = await api.post<ApiResponse<{ contract: IContract }>>(`/contracts/${id}/terminate`);
   return response.data.data.contract;
 };
+
+export const getCurrentContract = async (): Promise<IContract> => {
+  try {
+      const response = await api.get<ApiResponse<{ contract: IContract }>>('/hop-dong/current');
+      if (response.data && response.data.data && response.data.data.contract) {
+          return response.data.data.contract;
+      }
+      throw new Error("Không tìm thấy hợp đồng hoặc cấu trúc dữ liệu không hợp lệ.");
+  } catch (error: any) {
+      console.error("Error fetching current contract:", error.response?.data || error.message);
+      // Ném lỗi để component có thể bắt và xử lý
+      throw new Error(error.response?.data?.message || 'Không thể tải thông tin hợp đồng hiện tại.');
+  }
+};

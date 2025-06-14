@@ -24,3 +24,20 @@ export interface CreateElectricWaterUsageData {
     NgayGhi: string; // YYYY-MM-DD
     GhiChu?: string;
 }
+
+export interface IElectricWaterUsage {
+    MaGhiDienNuoc: number;
+    MaPhong: number;
+    Ky: string; // Hoặc Date nếu bạn muốn chuyển đổi
+    Loai: 'dien' | 'nuoc';
+    ChiSoCu: number;
+    ChiSoMoi: number;
+    SoTieuThu: number;
+    DonGia: number;
+    ThanhTien: number;
+    NgayGhi: string; // Hoặc Date
+    GhiChu?: string;
+    MaHoaDon?: number;
+    createdAt?: string;
+    updatedAt?: string;
+  }

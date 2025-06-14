@@ -113,7 +113,7 @@ export default function ServiceDetailsPage({ params }: { params: { id: string } 
 
   if (isLoading || authLoading || !service) {
     return (
-        <DashboardLayout>
+        
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                     <Skeleton className="h-8 w-48" />
@@ -146,12 +146,12 @@ export default function ServiceDetailsPage({ params }: { params: { id: string } 
                     </CardContent>
                 </Card>
             </div>
-        </DashboardLayout>
+       
     );
   }
 
   return (
-    <DashboardLayout>
+    
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -309,6 +309,6 @@ export default function ServiceDetailsPage({ params }: { params: { id: string } 
         </Card>
 
       </div>
-    </DashboardLayout>
+   
   )
 }

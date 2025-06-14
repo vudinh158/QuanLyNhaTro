@@ -144,7 +144,7 @@ export default function EditServicePage() {
   // The !service check here is crucial to prevent the 'TenDV' error if fetching failed
   if (isLoading || authLoading || !service) { 
     return (
-        <DashboardLayout>
+       
             <div className="mx-auto max-w-2xl">
                 <div className="flex items-center gap-2 mb-6">
                     <Skeleton className="h-10 w-24" /> 
@@ -168,12 +168,12 @@ export default function EditServicePage() {
                     </CardFooter>
                 </Card>
             </div>
-        </DashboardLayout>
+       
     );
   }
 
   return (
-    <DashboardLayout>
+   
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center gap-2 mb-6">
             <Button variant="outline" size="icon" asChild className="mr-2"> 
@@ -268,6 +268,6 @@ export default function EditServicePage() {
           </Card>
         </form>
       </div>
-    </DashboardLayout>
+   
   )
 }
