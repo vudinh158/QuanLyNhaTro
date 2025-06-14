@@ -25,17 +25,29 @@ const getPropertiesByLandlordId = async (maChuTro) => {
  * @returns {Promise<Property|null>}
  */
 const getPropertyByIdAndLandlord = async (propertyId, maChuTro) => {
-  const property = await Property.findOne({
-    where: {
-      MaNhaTro: propertyId,
-      MaChuTro: maChuTro,
-    },
-  });
-  if (!property) {
-    throw new AppError('Không tìm thấy nhà trọ hoặc bạn không có quyền truy cập.', 404);
-  }
-  return property;
-};
+    const property = await Property.findOne({
+      where: {
+        MaNhaTro: propertyId,
+        MaChuTro: maChuTro,
+      },
+      include: [
+        { 
+          model: Room, 
+          as: 'rooms', 
+          attributes: ['MaPhong', 'MaLoaiPhong', 'TenPhong', 'TrangThai', 'GhiChu'], // Lấy các thuộc tính cần thiết của phòng
+          // Bạn có thể include thêm RoomType nếu muốn hiển thị tên loại phòng và giá ngay tại đây
+          // include: [{ model: models.RoomType, as: 'roomType', attributes: ['TenLoai', 'Gia'] }]
+        }
+      ],
+      order: [
+        [{ model: Room, as: 'rooms' }, 'TenPhong', 'ASC'] // Sắp xếp phòng theo tên
+      ]
+    });
+    if (!property) {
+      throw new AppError('Không tìm thấy nhà trọ hoặc bạn không có quyền truy cập.', 404);
+    }
+    return property;
+  };
 
 /**
  * 

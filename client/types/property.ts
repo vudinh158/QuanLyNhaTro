@@ -1,10 +1,11 @@
+import { Room } from './room';
 export interface Property {
     MaNhaTro: number;
     MaChuTro: number;
     TenNhaTro: string;
     DiaChi: string;
     GhiChu?: string | null;
-    // rooms?: Partial<Room>[]; 
+    rooms?: Room[];
   }
 
   export interface NewPropertyData {

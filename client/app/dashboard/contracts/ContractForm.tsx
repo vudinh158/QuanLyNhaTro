@@ -1,4 +1,4 @@
-// file: client/app/dashboard/contracts/ContractForm.tsx
+// file: clone nhatro/client/app/dashboard/contracts/ContractForm.tsx
 "use client";
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,20 +20,24 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge'; // Import Badge để hiển thị "Mới"
 
 // Icons
 import { CalendarIcon, Loader2, Trash2, UserPlus } from 'lucide-react';
 
 // Utils & Services
 import { cn } from '@/lib/utils';
-import { format, subDays, parseISO, isValid, addMonths } from 'date-fns';
+import { format, parseISO, isValid, addMonths } from 'date-fns';
 import { getAvailableRoomsForContract } from '@/services/roomService';
 import { getAllTenantsForLandlord } from '@/services/tenantService';
 import { getServicesByProperty } from '@/services/serviceService';
 import { IContract, IContractPayload } from '@/types/contract';
-import type { Room } from '@/types/room'; // Sử dụng IRoom thay vì Room để nhất quán
-import type { Tenant } from '@/types/tenant'; // Sử dụng ITenant thay vì Tenant
+import type { Room } from '@/types/room';
+import type { Tenant } from '@/types/tenant';
 import type { IService } from '@/types/service';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { AddNewTenantForm } from '@/components/contracts/add-new-tenant-form';
+
 
 // Định nghĩa schema validation bằng Zod
 const contractFormSchema = z.object({
@@ -44,10 +48,19 @@ const contractFormSchema = z.object({
   TienThueThoaThuan: z.coerce.number().min(1, 'Tiền thuê phải lớn hơn 0.'),
   KyThanhToan: z.enum(['Đầu kỳ', 'Cuối kỳ'], { required_error: 'Vui lòng chọn kỳ thanh toán.' }),
   HanThanhToan: z.coerce.number().min(1, 'Hạn thanh toán phải là số dương.').max(28, 'Hạn thanh toán không quá ngày 28.'),
-  TrangThai: z.enum(['Mới tạo', 'Có hiệu lực', 'Hết hiệu lực', 'Đã thanh lý']),
+  // TrangThai sẽ được tự động gán ở backend, không gửi từ frontend
+  // TrangThai: z.enum(['Mới tạo', 'Có hiệu lực', 'Hết hiệu lực', 'Đã thanh lý']),
   GhiChu: z.string().optional(),
   occupants: z.array(z.object({
-    MaKhachThue: z.number(),
+    // Cập nhật schema để cho phép cả MaKhachThue (exist) hoặc HoTen/SoDienThoai (new)
+    MaKhachThue: z.number().optional(), // Có thể không có nếu là khách thuê mới
+    isNew: z.boolean().optional(), // Cờ để backend biết đây là khách thuê mới
+    HoTen: z.string().optional(), // Tên là bắt buộc cho khách thuê mới
+    SoDienThoai: z.string().optional(), // SĐT là bắt buộc cho khách thuê mới
+    CCCD: z.string().optional(),
+    Email: z.string().optional(),
+    GioiTinh: z.enum(['Nam', 'Nữ', 'Khác']).optional(),
+    QueQuan: z.string().optional(),
     LaNguoiDaiDien: z.boolean(),
   })).min(1, 'Phải có ít nhất một người ở.'),
   registeredServices: z.array(z.number()).optional(),
@@ -61,6 +74,11 @@ const contractFormSchema = z.object({
 
 type ContractFormValues = z.infer<typeof contractFormSchema>;
 
+// Cập nhật IContractPayload ở types/contract.ts để khớp với cấu trúc occupants mới này
+// Trong types/contract.ts, phần `occupants` của `IContractPayload`
+// cần cho phép 2 dạng object: { MaKhachThue: number, LaNguoiDaiDien: boolean }
+// HOẶC { isNew: true, HoTen: string, SoDienThoai: string, ..., LaNguoiDaiDien: boolean }
+
 interface ContractFormProps {
     initialData?: IContract;
     onSubmitAction: (data: IContractPayload) => Promise<any>;
@@ -70,11 +88,25 @@ interface ContractFormProps {
 export function ContractForm({ initialData, onSubmitAction, isSubmitting }: ContractFormProps) {
     const { toast } = useToast();
     const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
-    const [tenants, setTenants] = useState<Tenant[]>([]);
+    const [tenants, setTenants] = useState<Tenant[]>([]); // Danh sách khách thuê hiện có
     const [services, setServices] = useState<IService[]>([]);
+    const [isNewTenantDialogOpen, setIsNewTenantDialogOpen] = useState(false);
 
     const form = useForm<ContractFormValues>({
         resolver: zodResolver(contractFormSchema),
+        defaultValues: {
+            MaPhong: 0,
+            NgayBatDau: new Date(),
+            NgayKetThuc: addMonths(new Date(), 6),
+            TienCoc: 0,
+            TienThueThoaThuan: 0,
+            KyThanhToan: 'Cuối kỳ',
+            HanThanhToan: 5,
+            // TrangThai: 'Có hiệu lực', // Không cần mặc định trạng thái ở frontend
+            occupants: [],
+            registeredServices: [],
+            GhiChu: '',
+        }
     });
 
     useEffect(() => {
@@ -86,28 +118,16 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
                 TienCoc: initialData.TienCoc,
                 TienThueThoaThuan: initialData.TienThueThoaThuan,
                 KyThanhToan: initialData.KyThanhToan,
-                HanThanhToan: initialData.HanThanhToan,
-                TrangThai: initialData.TrangThai,
+                HanThanhToan: initialData.HanThue, // FIX: Should be HanThanhToan from initialData.HanThanhToan
+                // TrangThai: initialData.TrangThai, // Giữ lại nếu muốn hiển thị khi edit, nhưng vẫn do backend quyết định trạng thái thực khi update
                 GhiChu: initialData.GhiChu || '',
+                // Đối với occupants khi edit, chúng luôn có MaKhachThue
                 occupants: initialData.occupants.map(o => ({
                     MaKhachThue: o.MaKhachThue,
                     LaNguoiDaiDien: o.LaNguoiDaiDien,
+                    // Không cần isNew, HoTen, SoDienThoai cho khách thuê đã có
                 })),
                 registeredServices: initialData.registeredServices.map(s => s.MaDV),
-            });
-        } else {
-            form.reset({
-                MaPhong: 0, // Dùng số 0 hoặc null, nhưng 0 dễ xử lý hơn với coerce
-                NgayBatDau: new Date(),
-                NgayKetThuc: addMonths(new Date(), 6), // Mặc định hợp đồng 6 tháng
-                TienCoc: 0,
-                TienThueThoaThuan: 0, // Giá trị ban đầu, sẽ được cập nhật khi chọn phòng
-                KyThanhToan: 'Cuối kỳ',
-                HanThanhToan: 5,
-                TrangThai: 'Có hiệu lực',
-                occupants: [],
-                registeredServices: [],
-                GhiChu: '',
             });
         }
     }, [initialData, form]);
@@ -122,10 +142,10 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
             try {
                 const [roomsData, tenantsData] = await Promise.all([
                     getAvailableRoomsForContract(),
-                    getAllTenantsForLandlord({})
+                    getAllTenantsForLandlord({}) // Lấy tất cả khách thuê hiện có
                 ]);
                 setAvailableRooms(roomsData);
-                setTenants(tenantsData);
+                setTenants(tenantsData); // Set fetched tenants
 
                 if (initialData) {
                     const roomOfContract = roomsData.find(r => r.MaPhong === initialData.MaPhong) || initialData.room;
@@ -149,19 +169,38 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
             }
             try {
                 const servicesData = await getServicesByProperty(room.MaNhaTro);
-                setServices(servicesData);
+                setServices(servicesData || []); // Ensure servicesData is an array, default to empty array if null/undefined
             } catch (error: any) {
                 toast({ title: "Lỗi", description: `Không thể tải dịch vụ: ${error.message}`, variant: "destructive" });
+                setServices([]); // Explicitly set to empty array on error to prevent undefined issues
             }
+        } else {
+            setServices([]); // Clear services if no room is selected or room not found
         }
     };
 
-    const handleAddOccupant = (tenantId: number) => {
-        if (fields.some(field => field.MaKhachThue === tenantId)) {
-            toast({ title: "Thông báo", description: "Khách thuê đã có trong danh sách." });
+    // Hàm này được gọi khi chọn khách thuê đã có HOẶC nhận dữ liệu khách thuê mới từ AddNewTenantForm
+    const handleAddOccupant = (occupantToAdd: { MaKhachThue: number; HoTen?: string; } | any) => {
+        // Kiểm tra xem khách thuê đã có trong danh sách form chưa
+        // Nếu là khách thuê cũ, kiểm tra theo MaKhachThue.
+        // Nếu là khách thuê mới, không có MaKhachThue, nhưng cũng không thể trùng lặp về thông tin (nên kiểm tra duy nhất ở backend)
+        if (occupantToAdd.MaKhachThue && fields.some(field => field.MaKhachThue === occupantToAdd.MaKhachThue)) {
+            toast({ title: "Thông báo", description: "Khách thuê đã có trong danh sách.", variant: "warning" });
             return;
         }
-        append({ MaKhachThue: tenantId, LaNguoiDaiDien: fields.length === 0 });
+
+        // Tự động gán người đại diện nếu đây là người đầu tiên được thêm vào danh sách
+        append({
+            ...occupantToAdd, // Bao gồm MaKhachThue HOẶC isNew, HoTen, SoDienThoai
+            LaNguoiDaiDien: fields.length === 0
+        });
+    };
+
+    // Callback này nhận dữ liệu thô của khách thuê mới từ AddNewTenantForm
+    const handleNewTenantCreated = (newTenantData: { isNew: true; HoTen: string; SoDienThoai: string; CCCD?: string; Email?: string; GioiTinh?: 'Nam' | 'Nữ' | 'Khác'; QueQuan?: string; }) => {
+        // Thêm dữ liệu khách thuê mới vào danh sách người ở của form
+        handleAddOccupant(newTenantData);
+        setIsNewTenantDialogOpen(false); // Đóng dialog
     };
 
     const handleSetRepresentative = (indexToUpdate: number) => {
@@ -171,19 +210,50 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
     };
 
     async function processSubmit(data: ContractFormValues) {
+        // Chuẩn bị payload cho backend
         const payload: IContractPayload = {
             ...data,
             NgayLap: format(new Date(), 'yyyy-MM-dd'),
             NgayBatDau: format(data.NgayBatDau, 'yyyy-MM-dd'),
             NgayKetThuc: format(data.NgayKetThuc, 'yyyy-MM-dd'),
             registeredServices: data.registeredServices || [],
+            // TrangThai không được gửi từ frontend, vì backend sẽ tự xác định
+            // TrangThai: data.TrangThai, // REMOVE THIS LINE or ensure it's not sent if backend controls it
+
+            // Ánh xạ occupants để backend biết đâu là khách thuê mới cần tạo
+            occupants: data.occupants.map(occ => {
+                if (occ.isNew) {
+                    // Dữ liệu cho khách thuê mới
+                    return {
+                        isNew: true,
+                        HoTen: occ.HoTen!, // Yêu cầu có HoTen
+                        SoDienThoai: occ.SoDienThoai!, // Yêu cầu có SoDienThoai
+                        CCCD: occ.CCCD,
+                        Email: occ.Email,
+                        GioiTinh: occ.GioiTinh,
+                        QueQuan: occ.QueQuan,
+                        LaNguoiDaiDien: occ.LaNguoiDaiDien
+                    };
+                } else {
+                    // Dữ liệu cho khách thuê đã tồn tại
+                    return {
+                        MaKhachThue: occ.MaKhachThue!, // Yêu cầu có MaKhachThue
+                        LaNguoiDaiDien: occ.LaNguoiDaiDien
+                    };
+                }
+            }) as any, // Dùng 'as any' tạm thời nếu TypeScript vẫn báo lỗi về kiểu union
         };
+
+        // Đảm bảo TrangThai không bị gửi nếu nó không còn là một phần của payload từ frontend
+        if ('TrangThai' in payload) {
+            delete (payload as any).TrangThai;
+        }
+
         await onSubmitAction(payload);
     }
 
     return (
         <Form {...form}>
-            {/* FIX 1: Sửa onSubmit thành processSubmit */}
             <form onSubmit={form.handleSubmit(processSubmit)} className="space-y-8">
                 <div className="grid md:grid-cols-3 gap-8">
                     {/* Cột trái */}
@@ -203,7 +273,6 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
                                                 <SelectContent>
                                                     {availableRooms.map(room => (
                                                         <SelectItem key={room.MaPhong} value={String(room.MaPhong)}>
-                                                            {/* FIX 2: Sửa lỗi 'possibly undefined' */}
                                                             {room.TenPhong} - {room.property?.TenNhaTro || 'N/A'}
                                                         </SelectItem>
                                                     ))}
@@ -249,23 +318,55 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
                             <CardHeader><CardTitle>Bên thuê</CardTitle></CardHeader>
                             <CardContent>
                                 <div className="flex items-center gap-2 mb-4">
-                                    <Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-start">
-                                        <UserPlus className="mr-2 h-4 w-4"/> Thêm người ở</Button>
-                                    </PopoverTrigger><PopoverContent className="w-[300px] p-0">
-                                        <Command><CommandInput placeholder="Tìm khách thuê..."/><CommandEmpty>Không tìm thấy.</CommandEmpty><CommandList><CommandGroup>
-                                            {tenants.map(tenant => (
-                                                <CommandItem key={tenant.MaKhachThue} onSelect={() => handleAddOccupant(tenant.MaKhachThue)}>{tenant.HoTen}</CommandItem>
-                                            ))}
-                                        </CommandGroup></CommandList></Command>
-                                    </PopoverContent></Popover>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-start">
+                                                <UserPlus className="mr-2 h-4 w-4"/> Thêm người ở
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[300px] p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Tìm khách thuê..."/>
+                                                <CommandEmpty>Không tìm thấy.</CommandEmpty>
+                                                <CommandList>
+                                                    <CommandGroup>
+                                                        {tenants.map(tenant => (
+                                                            <CommandItem key={tenant.MaKhachThue} onSelect={() => handleAddOccupant({MaKhachThue: tenant.MaKhachThue, HoTen: tenant.HoTen})}>
+                                                                {tenant.HoTen}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                            {/* Nút Thêm khách thuê mới trong Popover hoặc ngay bên cạnh */}
+                                            <div className="p-2 border-t">
+                                                <Dialog open={isNewTenantDialogOpen} onOpenChange={setIsNewTenantDialogOpen}>
+                                                    <DialogTrigger asChild>
+                                                        <Button variant="outline" className="w-full">
+                                                            <UserPlus className="mr-2 h-4 w-4" /> Thêm khách thuê mới
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent>
+                                                        <AddNewTenantForm onTenantCreated={handleNewTenantCreated} onClose={() => setIsNewTenantDialogOpen(false)} />
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
                                 <FormField control={form.control} name="occupants" render={() => (
                                     <FormItem>
                                         {fields.map((field, index) => {
-                                            const tenantInfo = tenants.find(t => t.MaKhachThue === field.MaKhachThue);
+                                            // Lấy thông tin hiển thị của người ở
+                                            const tenantInfo = field.MaKhachThue 
+                                                ? tenants.find(t => t.MaKhachThue === field.MaKhachThue) // Khách thuê cũ
+                                                : field; // Khách thuê mới (dữ liệu trực tiếp từ form)
                                             return (
                                                 <div key={field.id} className="flex items-center justify-between p-2 border rounded-md">
-                                                    <span>{tenantInfo?.HoTen || '...'}</span>
+                                                    <span>
+                                                        {tenantInfo?.HoTen || '...'}
+                                                        {field.isNew && <Badge variant="secondary" className="ml-1">Mới</Badge>}
+                                                    </span>
                                                     <div className="flex items-center gap-2">
                                                         <RadioGroup onValueChange={() => handleSetRepresentative(index)} value={field.LaNguoiDaiDien ? "rep" : `not-rep-${index}`}>
                                                             <div className="flex items-center space-x-2">
@@ -288,14 +389,13 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
                                 <FormField control={form.control} name="registeredServices" render={() => (
                                     <FormItem>
                                         <div className='space-y-2'>
-                                            {services.length > 0 ? services.map((service) => (
+                                            {services && services.length > 0 ? services.map((service) => (
                                                 <FormField key={service.MaDV} control={form.control} name="registeredServices" render={({ field }) => (
                                                     <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                                         <FormControl>
                                                             <Checkbox
                                                                 checked={field.value?.includes(service.MaDV)}
                                                                 onCheckedChange={(checked) => {
-                                                                    // FIX 3: Sửa lỗi spread undefined
                                                                     const currentValue = field.value || [];
                                                                     return checked
                                                                         ? field.onChange([...currentValue, service.MaDV])
@@ -342,19 +442,10 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
                                 <FormField control={form.control} name="GhiChu" render={({ field }) => (
                                     <FormItem><FormLabel>Ghi chú</FormLabel><FormControl><Textarea placeholder="Các điều khoản bổ sung..." {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                <FormField control={form.control} name="TrangThai" render={({ field }) => (
-                                    <FormItem><FormLabel>Trạng thái ban đầu</FormLabel><Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="Có hiệu lực">Có hiệu lực</SelectItem>
-                                            {/* FIX 4: Sửa lỗi thẻ đóng JSX */}
-                                            <SelectItem value="Mới tạo">Mới tạo (giữ chỗ)</SelectItem>
-                                        </SelectContent>
-                                    </Select><FormDescription>Chọn "Mới tạo" nếu chỉ đặt cọc giữ chỗ.</FormDescription><FormMessage /></FormItem>
-                                )}/>
+                                {/* Trạng thái hợp đồng được quyết định ở backend */}
+                                {/* Bạn có thể thêm một trường hiển thị trạng thái hợp đồng nếu là edit mode, nhưng không cho phép chỉnh sửa */}
                             </CardContent>
                         </Card>
-                        {/* FIX 5: Sửa `isLoading` thành `isSubmitting` */}
                         <Button type="submit" className="w-full" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {initialData ? 'Lưu thay đổi' : 'Tạo hợp đồng'}

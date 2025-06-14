@@ -137,7 +137,7 @@ const getTenantByIdForLandlord = async (maKhachThue, maChuTro) => {
   return tenant;
 };
 
-const createTenant = async (tenantData, landlordMaTK) => {
+const createTenant = async (tenantData, landlordMaTK, t) => {
   const {
     HoTen, CCCD, SoDienThoai, Email, NgaySinh, GioiTinh, QueQuan, GhiChu, AnhGiayTo, TrangThai,
     TenDangNhap, MatKhau, // Cho UserAccount
@@ -161,18 +161,18 @@ const createTenant = async (tenantData, landlordMaTK) => {
     if (existingByCCCD) throw new AppError('CCCD đã được sử dụng.', 400);
   }
 
-  const transaction = await sequelize.transaction();
+  const transaction = t || await sequelize.transaction();
   try {
     let newMaTK = null;
     if (TenDangNhap && MatKhau) { // Nếu có tạo tài khoản
       const existingUserAccount = await UserAccount.findOne({ where: { TenDangNhap }, transaction });
       if (existingUserAccount) {
-        await transaction.rollback();
+        if (!t) await transaction.rollback();
         throw new AppError('Tên đăng nhập đã tồn tại.', 400);
       }
       const khachThueRole = await Role.findOne({ where: { TenVaiTro: 'Khách thuê' }, transaction });
       if (!khachThueRole) {
-        await transaction.rollback();
+        if (!t) await transaction.rollback();
         throw new AppError('Không tìm thấy vai trò "Khách thuê".', 500);
       }
       const newUserAccount = await UserAccount.create({
@@ -187,14 +187,14 @@ const createTenant = async (tenantData, landlordMaTK) => {
     const newTenant = await Tenant.create({
       MaTK: newMaTK, // Có thể là null nếu không tạo tài khoản
       HoTen, CCCD, SoDienThoai, Email, NgaySinh, GioiTinh, QueQuan, GhiChu, AnhGiayTo,
-      TrangThai: TrangThai || 'Tiềm năng',
+      TrangThai: TrangThai || 'Đang thuê',
       // MaNguoiTao: landlordMaTK, // (Tùy chọn) Nếu bạn muốn lưu ai đã tạo khách thuê này
-    }, { transaction });
+    }, { transaction: transaction });
 
-    await transaction.commit();
+    if (!t) await transaction.commit();
     return newTenant;
   } catch (error) {
-    await transaction.rollback();
+    if (!t) await transaction.commit();
     if (error.name === 'SequelizeUniqueConstraintError') {
         const field = error.errors && error.errors.length > 0 ? error.errors[0].path : 'unknown';
         throw new AppError(`Giá trị cho trường ${field} đã tồn tại. Vui lòng kiểm tra lại.`, 400);

@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const path = require("path");
+const AppError = require("./utils/AppError");
 
 const authRoutes = require("./routes/auth");
 const propertyRoutes = require("./routes/propertyRoutes");
@@ -71,6 +72,22 @@ app.use(express.static(path.join(__dirname, "../client/build")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+});
+
+app.use((err, req, res, next) => {
+    if (err instanceof AppError) {
+        return res.status(err.statusCode).json({
+            status: err.status,
+            message: err.message
+        });
+    }
+
+    // Các lỗi không xác định khác
+    console.error('ERROR 💥', err);
+    res.status(500).json({
+        status: 'error',
+        message: 'Đã xảy ra lỗi không mong muốn từ máy chủ!'
+    });
 });
 
 // Chỉ chạy scheduler, sync DB và start server khi không phải test

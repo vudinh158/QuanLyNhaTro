@@ -10,7 +10,7 @@ router.use(protect); // Tất cả các route này yêu cầu đăng nhập
 // Ví dụ phân quyền chi tiết
 router.route('/')
   .get(restrictTo('tenant_profile:read_own_property'), tenantController.getAllTenants) // Chủ trọ xem khách thuê của mình
-  .post(restrictTo('tenant_profile:create'), tenantController.createTenant); // Chủ trọ tạo khách thuê
+//   .post(restrictTo('tenant_profile:create'), tenantController.createTenant); // Chủ trọ tạo khách thuê
 
 router.route('/:id')
   .get(restrictTo('tenant_profile:read_own_property', 'tenant_profile:read_self'), tenantController.getTenantById) // Chủ trọ xem khách của mình, khách thuê xem bản thân

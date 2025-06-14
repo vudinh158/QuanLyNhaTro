@@ -1,5 +1,4 @@
-// file: client/types/contract.ts
-
+// file: clone nhatro/client/types/contract.ts
 import { Room } from './room';
 import { Property } from './property';
 import { Tenant } from './tenant';
@@ -48,13 +47,23 @@ export interface IContractPayload {
   TienThueThoaThuan: number;
   KyThanhToan: 'Đầu kỳ' | 'Cuối kỳ';
   HanThanhToan: number;
-  TrangThai: 'Mới tạo' | 'Có hiệu lực' | 'Hết hiệu lực' | 'Đã thanh lý';
+  TrangThai?: 'Mới tạo' | 'Có hiệu lực' | 'Hết hiệu lực' | 'Đã thanh lý'; // Make TrangThai optional
   GhiChu?: string;
   
-  occupants: {
-    MaKhachThue: number;
+  // Update occupants to allow either existing tenant ID or new tenant data
+  occupants: ({
+    MaKhachThue: number; // For existing tenant
     LaNguoiDaiDien: boolean;
-  }[];
+  } | {
+    isNew: true; // Flag for new tenant
+    HoTen: string;
+    SoDienThoai: string;
+    CCCD?: string;
+    Email?: string;
+    GioiTinh?: 'Nam' | 'Nữ' | 'Khác';
+    QueQuan?: string;
+    LaNguoiDaiDien: boolean;
+  })[];
 
   registeredServices: number[];
 }

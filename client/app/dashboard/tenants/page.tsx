@@ -123,12 +123,12 @@ export default function TenantsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Quản lý khách thuê</h1>
-        <Button asChild>
+        {/* <Button asChild>
           <Link href="/dashboard/tenants/new">
             <Plus className="mr-2 h-4 w-4" />
             Thêm khách thuê
           </Link>
-        </Button>
+        </Button> */}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">

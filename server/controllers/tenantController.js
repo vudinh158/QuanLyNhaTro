@@ -22,26 +22,26 @@ exports.getAllTenants = catchAsync(async (req, res, next) => {
         data: { tenants },
     });
 });
-exports.createTenant = catchAsync(async (req, res, next) => {
-    // Kiểm tra xem có thông tin chủ trọ không
-    if (!req.user || !req.user.landlordProfile.MaChuTro) {
-        return next(new AppError('Không tìm thấy thông tin chủ trọ để tạo khách thuê.', 401));
-    }
-    const maChuTro = req.user.landlordProfile.MaChuTro;
+// exports.createTenant = catchAsync(async (req, res, next) => {
+//     // Kiểm tra xem có thông tin chủ trọ không
+//     if (!req.user || !req.user.landlordProfile.MaChuTro) {
+//         return next(new AppError('Không tìm thấy thông tin chủ trọ để tạo khách thuê.', 401));
+//     }
+//     const maChuTro = req.user.landlordProfile.MaChuTro;
 
-    // `req.body` sẽ chứa dữ liệu khách thuê gửi từ client
-    // Ví dụ: { HoTen, SoDienThoai, Email, CCCD, ... }
-    const newTenantData = { ...req.body, MaChuTro: maChuTro };
+//     // `req.body` sẽ chứa dữ liệu khách thuê gửi từ client
+//     // Ví dụ: { HoTen, SoDienThoai, Email, CCCD, ... }
+//     const newTenantData = { ...req.body, MaChuTro: maChuTro };
 
-    const newTenant = await tenantService.createTenant(newTenantData);
+//     const newTenant = await tenantService.createTenant(newTenantData);
 
-    res.status(201).json({
-        status: 'success',
-        data: {
-            tenant: newTenant,
-        },
-    });
-});
+//     res.status(201).json({
+//         status: 'success',
+//         data: {
+//             tenant: newTenant,
+//         },
+//     });
+// });
 
 exports.getTenantById = catchAsync(async (req, res, next) => {
     const maKhachThue = parseInt(req.params.id, 10);

@@ -1,5 +1,6 @@
 // apps/client-nextjs/app/(dashboard)/layout.tsx
 import type React from 'react';
+import { Toaster } from '@/components/ui/toaster'; // Hoặc sonner Toaster
 import DashboardLayoutComponent from '@/components/dashboard/dashboard-layout';
 
 export default function DashboardGroupLayout({ 
@@ -8,8 +9,12 @@ export default function DashboardGroupLayout({
   children: React.ReactNode;
 }) {
   return (
-    <DashboardLayoutComponent>
-      {children}
-    </DashboardLayoutComponent>
+    <>
+      <DashboardLayoutComponent>
+              {children}
+              {/* <Toaster /> */}
+      </DashboardLayoutComponent>
+      
+    </>
   );
 }

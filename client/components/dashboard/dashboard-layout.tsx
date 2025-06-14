@@ -12,6 +12,7 @@ import {
   Bell, Building2, ChevronDown, FileText, Home, LayoutDashboard, LogOut,
   Menu, MessageSquare, Settings, Users, Wallet, Zap, User as UserIcon // Đổi tên User thành UserIcon để tránh trùng
 } from "lucide-react";
+import { Toaster } from "@/components/ui/toaster"; // Hoặc sonner Toaster
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -223,7 +224,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </aside>
         )}
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
-      </div>
+          </div>
+          <Toaster />
     </div>
   );
 }

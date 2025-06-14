@@ -14,7 +14,7 @@ export const getMyProperties = async (queryParams?: { search?: string, status?: 
 
 export const getPropertyById = async (propertyId: number): Promise<Property> => {
   try {
-    const response = await axiosInstance.get<ApiResponse<Property>>(`/properties/${propertyId}`);
+    const response = await axiosInstance.get<ApiResponse<{ property: Property }>>(`/properties/${propertyId}`);
     return response.data.data.property as Property;
   } catch (error: any) {
     console.error(`Error fetching property ${propertyId}:`, error);

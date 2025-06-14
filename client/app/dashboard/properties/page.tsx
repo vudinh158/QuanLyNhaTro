@@ -68,6 +68,8 @@ export default function PropertiesPage() {
       });
       fetchProperties(); // Tải lại danh sách
     } catch (error: any) {
+        console.log("Calling toast for delete property error", error.message); 
+        // alert("Calling toast for delete property error", error.message);
       toast({
         title: "Lỗi xóa nhà trọ",
         description: error.message || "Không thể xóa. Vui lòng thử lại.",
