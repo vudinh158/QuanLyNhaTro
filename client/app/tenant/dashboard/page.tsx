@@ -108,8 +108,11 @@ export default function TenantDashboardPage() {
                         summary.recentNotifications.map(item => (
                             <div key={item.MaThongBao} className="flex items-center">
                                 <div className="space-y-1">
+                                    {/* --- SỬA LỖI Ở ĐÂY --- */}
+                                    {/* Bỏ ".notification" và truy cập trực tiếp vào "item.TieuDe" và "item.NoiDung" */}
                                     <p className="text-sm font-bold">{item.notification.TieuDe}</p>
                                     <p className="text-sm text-muted-foreground line-clamp-1">{item.notification.NoiDung}</p>
+                                    {/* --- KẾT THÚC PHẦN SỬA --- */}
                                 </div>
                                 <Button variant="ghost" size="sm" asChild className="ml-auto">
                                     <Link href="/tenant/notifications">Chi tiết</Link>
