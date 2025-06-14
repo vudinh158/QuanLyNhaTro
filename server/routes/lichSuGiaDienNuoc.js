@@ -5,11 +5,14 @@ const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
 router
   .route('/')
-  .post(protect, restrictTo('Sửa giá điện nước'), lichSuGiaDienNuocController.createLichSuGiaDienNuoc)
-  .get(protect, restrictTo('Xem lịch sử giá điện nước'), lichSuGiaDienNuocController.getAllLichSuGiaDienNuoc);
+  // Sửa 'Sửa giá điện nước' thành tên quyền đúng trong DB
+  .post(protect, restrictTo('electric_water_price:manage_own_property'), lichSuGiaDienNuocController.createLichSuGiaDienNuoc) 
+  // Sửa 'Xem lịch sử giá điện nước' thành tên quyền đúng trong DB
+  .get(protect, restrictTo('electric_water_price:manage_own_property'), lichSuGiaDienNuocController.getAllLichSuGiaDienNuoc);
 
 router
   .route('/:id')
-  .get(protect, restrictTo('Xem lịch sử giá điện nước'), lichSuGiaDienNuocController.getLichSuGiaDienNuoc);
+  // Sửa 'Xem lịch sử giá điện nước' thành tên quyền đúng trong DB
+  .get(protect, restrictTo('electric_water_price:manage_own_property'), lichSuGiaDienNuocController.getLichSuGiaDienNuoc);
 
 module.exports = router;

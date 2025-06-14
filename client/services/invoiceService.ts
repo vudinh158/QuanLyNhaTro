@@ -16,7 +16,6 @@ interface GetInvoicesParams {
 // Service to fetch invoices for landlord and tenant
 export const getInvoices = async (params?: GetInvoicesParams): Promise<IInvoice[]> => {
     try {
-        // Construct query parameters for the API
         const queryParams: { [key: string]: any } = {};
         if (params?.propertyId) queryParams.propertyId = params.propertyId;
         if (params?.roomId) queryParams.roomId = params.roomId;
@@ -25,8 +24,22 @@ export const getInvoices = async (params?: GetInvoicesParams): Promise<IInvoice[
         if (params?.period) queryParams.period = params.period;
         if (params?.search) queryParams.search = params.search;
 
+        // Giả sử server trả về { data: { hoaDons: [...] } } (như đã sửa ở lần trước)
         const response = await api.get<ApiResponse<{ hoaDons: IInvoice[] }>>('/hoa-don', { params: queryParams });
-        return response.data.data.hoaDons;
+        
+        // SỬA LỖI TIỀM TÀNG: Kiểm tra dữ liệu trước khi trả về
+        if (response.data && response.data.data && Array.isArray(response.data.data.hoaDons)) {
+            return response.data.data.hoaDons;
+        }
+        
+        // Nếu server trả về { data: [...] }, sử dụng dòng dưới đây và thay đổi generic của api.get
+        // const response = await api.get<ApiResponse<IInvoice[]>>('/hoa-don', { params: queryParams });
+        // if (response.data && Array.isArray(response.data.data)) {
+        //     return response.data.data;
+        // }
+
+        throw new Error("Cấu trúc dữ liệu hóa đơn trả về không hợp lệ.");
+
     } catch (error: any) {
         console.error("Error fetching invoices:", error.response?.data || error.message);
         throw new Error(error.response?.data?.message || 'Không thể tải danh sách hóa đơn.');
@@ -106,10 +119,19 @@ export const createPayment = async (data: CreatePaymentPayload): Promise<IPaymen
 // Service to fetch payment methods
 export const getPaymentMethods = async (): Promise<{ MaPTTT: number; TenPTTT: string }[]> => {
     try {
-        // Backend (phuongThucThanhToanController.js) trả về { status: 'success', results: ..., data: records }
-        // records là một mảng các đối tượng { MaPTTT: number; TenPTTT: string }
-        const response = await api.get<ApiResponse<{ data: { MaPTTT: number; TenPTTT: string }[] }>>('/phuong-thuc-thanh-toan');
-        return response.data.data.IInvoiceDetail.paymentMethod; // Assuming data is an array of payment methods
+        // SỬA LỖI 1: Thay đổi generic để khớp với cấu trúc server trả về { data: [...] }
+        const response = await api.get<ApiResponse<{ MaPTTT: number; TenPTTT: string }[]>>('/phuong-thuc-thanh-toan');
+        
+        // SỬA LỖI 2: Truy cập trực tiếp vào mảng data
+        // Dữ liệu đúng nằm trong `response.data.data`
+        if (response.data && Array.isArray(response.data.data)) {
+            return response.data.data;
+        }
+
+        // Nếu không có dữ liệu hoặc không phải mảng, trả về mảng rỗng để tránh lỗi
+        console.warn("Dữ liệu phương thức thanh toán trả về không hợp lệ, trả về mảng rỗng.");
+        return [];
+
     } catch (error: any) {
         console.error("Error fetching payment methods:", error.response?.data || error.message);
         throw new Error(error.response?.data?.message || 'Không thể tải phương thức thanh toán.');

@@ -5,11 +5,13 @@ const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
 router
   .route('/')
-  .post(protect, restrictTo('Tạo hóa đơn'), hoaDonController.createHoaDon)
-  .get(protect, restrictTo('Xem hóa đơn'), hoaDonController.getAllHoaDon);
+  .post(protect, restrictTo('invoice:create'), hoaDonController.createHoaDon) // Cập nhật cả quyền tạo hóa đơn
+  // Sửa 'Xem hóa đơn' thành 'invoice:read_own_property'
+  .get(protect, restrictTo('invoice:read_own_property'), hoaDonController.getAllHoaDon);
 
 router
   .route('/:id')
-  .get(protect, restrictTo('Xem hóa đơn'), hoaDonController.getHoaDon);
+  // Sửa 'Xem hóa đơn' thành 'invoice:read_own_property' (nếu áp dụng cho cả xem chi tiết)
+  .get(protect, restrictTo('invoice:read_own_property'), hoaDonController.getHoaDon);
 
 module.exports = router;

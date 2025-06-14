@@ -1,4 +1,4 @@
-const { Invoice, Contract, Room, Property, Occupant, InvoiceDetail } = require('../models');
+const { Invoice, Contract, Room, Property, Occupant, Tenant, InvoiceDetail } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
 
@@ -27,8 +27,9 @@ exports.getAllHoaDon = async (req, res, next) => {
   try {
     let whereClause = {};
 
-    if (req.user.TenVaiTro === 'Chủ trọ') {
-      whereClause['$contract.room.property.MaChuTro$'] = req.user.MaChuTro;
+    // Sửa lỗi truy cập thông tin user
+    if (req.user.role.TenVaiTro === 'Chủ trọ') {
+      whereClause['$contract.room.property.MaChuTro$'] = req.user.landlordProfile.MaChuTro;
     }
 
     const hoaDons = await Invoice.findAll({
@@ -48,7 +49,12 @@ exports.getAllHoaDon = async (req, res, next) => {
             },
             {
               model: Occupant,
-              as: 'tenant'
+              as: 'occupants', // Dùng đúng alias 'occupants'
+              include: [{
+                model: Tenant, // Bây giờ "Tenant" đã được import và hợp lệ
+                as: 'tenant',
+                attributes: ['HoTen']
+              }]
             }
           ]
         }
@@ -56,7 +62,12 @@ exports.getAllHoaDon = async (req, res, next) => {
       order: [['NgayLap', 'DESC']]
     });
 
-    res.status(200).json({ status: 'success', results: hoaDons.length, data: hoaDons });
+    // Sửa lỗi cấu trúc data trả về
+    res.status(200).json({ 
+        status: 'success', 
+        results: hoaDons.length, 
+        data: { hoaDons } 
+    });
   } catch (error) {
     next(error);
   }

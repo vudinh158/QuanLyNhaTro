@@ -10,11 +10,24 @@ import { IService, NewServiceData, UpdateServiceData } from '@/types/service'; /
  */
 export const getAllServices = async (params?: { propertyId?: number; search?: string; type?: string }): Promise<IService[]> => {
     try {
-        const response = await api.get<ApiResponse<{ services: IService[] }>>('/dich-vu', { params }); //
-        return response.data.data.services; //
+        // Sửa kiểu Generic của ApiResponse để khớp với cấu trúc server { data: [...] }
+        const response = await api.get<ApiResponse<IService[]>>('/dich-vu', { params });
+
+        // SỬA LỖI Ở ĐÂY:
+        // Lấy mảng services trực tiếp từ response.data.data
+        const services = response.data.data as IService[];
+
+        if (Array.isArray(services)) {
+            return services;
+        }
+
+        // Nếu dữ liệu không phải là mảng, trả về mảng rỗng để tránh lỗi
+        console.warn("Dữ liệu dịch vụ trả về không phải là một mảng:", response.data.data);
+        return [];
+
     } catch (error: any) {
-        console.error("Error fetching services:", error);
-        throw new Error(error.response?.data?.message || error.message || 'Không thể tải danh sách dịch vụ.');
+        console.error("Error fetching services:", error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || 'Không thể tải danh sách dịch vụ.');
     }
 };
 

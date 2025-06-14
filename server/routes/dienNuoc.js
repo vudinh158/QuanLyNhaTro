@@ -5,13 +5,13 @@ const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
 router
   .route('/')
-  .post(protect, restrictTo('Ghi chỉ số điện nước'), dienNuocController.createDienNuoc)
-  .get(protect, restrictTo('Xem chỉ số điện nước'), dienNuocController.getAllDienNuoc);
+  .post(protect, restrictTo('electric_water:record_own_property'), dienNuocController.createDienNuoc)
+  .get(protect, restrictTo('electric_water:record_own_property'), dienNuocController.getAllDienNuoc);
 
 router
   .route('/:id')
-  .get(protect, restrictTo('Xem chỉ số điện nước'), dienNuocController.getDienNuoc)
-  .patch(protect, restrictTo('Sửa chỉ số điện nước'), dienNuocController.updateDienNuoc)
-  .delete(protect, restrictTo('Xóa chỉ số điện nước'), dienNuocController.deleteDienNuoc);
+  .get(protect, restrictTo('electric_water:read-self'), dienNuocController.getDienNuoc)
+  .patch(protect, restrictTo('electric_water:record_own_property'), dienNuocController.updateDienNuoc)
+  .delete(protect, restrictTo('electric_water:record_own_property'), dienNuocController.deleteDienNuoc);
 
 module.exports = router;

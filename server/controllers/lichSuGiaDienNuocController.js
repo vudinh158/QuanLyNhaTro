@@ -56,20 +56,33 @@ exports.getLichSuGiaDienNuoc = async (req, res, next) => {
 exports.getAllLichSuGiaDienNuoc = async (req, res, next) => {
   try {
     const where = {};
-    if (req.user.TenVaiTro === 'Chủ trọ') {
-      where['$nhaTro.MaChuTro$'] = req.user.MaChuTro;
+    
+    // SỬA LỖI 1: Truy cập đúng cấu trúc thông tin người dùng
+    if (req.user.role.TenVaiTro === 'Chủ trọ') {
+      // SỬA LỖI 2: Dùng đúng alias 'property' trong điều kiện where
+      where['$property.MaChuTro$'] = req.user.landlordProfile.MaChuTro;
     }
 
     const records = await ElectricWaterPriceHistory.findAll({
       where,
       include: [
-        { model: Property, as: 'nhaTro' },
-        { model: Landlord, as: 'nguoiCapNhat' }
-      ]
+        // SỬA LỖI 2: Dùng đúng alias 'property' trong include
+        { model: Property, as: 'property' }, 
+        { model: Landlord, as: 'updatedBy' } // Alias 'updatedBy' phải khớp với model
+      ],
+      order: [['NgayApDung', 'DESC']]
     });
 
-    res.status(200).json({ status: 'success', results: records.length, data: records });
+    // SỬA LỖI 3: Trả về dữ liệu đúng cấu trúc client mong đợi
+    res.status(200).json({ 
+      status: 'success', 
+      results: records.length, 
+      data: { lichSuGiaDienNuoc: records } 
+    });
+
   } catch (error) {
+    // Ghi lại lỗi để debug
+    console.error("Lỗi trong getAllLichSuGiaDienNuoc:", error);
     next(error);
   }
 };

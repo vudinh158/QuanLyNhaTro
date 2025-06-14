@@ -177,7 +177,13 @@ export default function BillsPage() {
                     </div>
                     <div className="text-sm">
                       <span className="text-muted-foreground">Kỳ thanh toán:</span>{" "}
-                      <span>{format(new Date(bill.TuNgay), 'dd/MM/yyyy')} - {format(new Date(bill.DenNgay), 'dd/MM/yyyy')}</span>
+                      <span>
+              {/* Kiểm tra bill.TuNgay trước khi format */}
+              {bill.TuNgay ? format(new Date(bill.TuNgay), 'dd/MM/yyyy') : 'N/A'}
+              {' - '}
+              {/* Kiểm tra bill.DenNgay trước khi format */}
+              {bill.DenNgay ? format(new Date(bill.DenNgay), 'dd/MM/yyyy') : 'N/A'}
+            </span>
                     </div>
                   </div>
 
