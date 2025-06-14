@@ -8,25 +8,19 @@ import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/co
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-// import type { Tenant, NewTenantData } from "@/types"; // Bỏ hoặc comment nếu không còn dùng Tenant type trực tiếp ở đây
-// import { createTenant } from "@/services/tenantService"; // REMOVE THIS LINE
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-// Define the shape of new tenant data to be returned to the parent (ContractForm)
-// Đây là dữ liệu mà AddNewTenantForm sẽ trả về, không phải là payload đầy đủ cho API createTenant
 interface NewTenantDataForContractForm {
-    isNew: true; // Flag để ContractForm biết đây là khách thuê mới cần tạo
+    isNew: true;
     HoTen: string;
     SoDienThoai: string;
     CCCD?: string;
     Email?: string;
     GioiTinh?: 'Nam' | 'Nữ' | 'Khác';
     QueQuan?: string;
-    // Thêm các trường khác cần thiết cho khách thuê mới từ form
 }
 
 interface AddNewTenantFormProps {
-  // Thay đổi kiểu của onTenantCreated để nhận dữ liệu thô
   onTenantCreated: (newTenantData: NewTenantDataForContractForm) => void;
   onClose: () => void;
 }
@@ -42,8 +36,8 @@ export const AddNewTenantForm = ({ onTenantCreated, onClose }: AddNewTenantFormP
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
 
-    const handleCreateTenant = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    // Changed to a regular function that will be called by the button's onClick
+    const handleAddTenantClick = async () => { // Renamed from handleCreateTenant
         setIsSubmitting(true);
         try {
             if (!hoTen || !soDienThoai) {
@@ -52,24 +46,20 @@ export const AddNewTenantForm = ({ onTenantCreated, onClose }: AddNewTenantFormP
                 return;
             }
 
-            // DO NOT call createTenant service here.
-            // Instead, prepare the data and pass it back to the parent (ContractForm).
             const newTenantPayload: NewTenantDataForContractForm = {
-                isNew: true, // Flag quan trọng
+                isNew: true,
                 HoTen: hoTen,
                 SoDienThoai: soDienThoai,
-                ...(cccd && { CCCD: cccd }), // Chỉ thêm nếu có giá trị
+                ...(cccd && { CCCD: cccd }),
                 ...(email && { Email: email }),
                 ...(gioiTinh && { GioiTinh: gioiTinh }),
                 ...(queQuan && { QueQuan: queQuan }),
             };
 
-            // Call the callback to send this data to the parent (ContractForm)
             onTenantCreated(newTenantPayload);
             toast({ title: "Thông báo", description: "Thông tin khách thuê mới đã được chuẩn bị." });
-            onClose(); // Close dialog
+            onClose();
         } catch (error: any) {
-            // Log lỗi nếu có validation ở frontend hoặc lỗi không mong muốn khác
             toast({ title: "Lỗi", description: error.message, variant: "destructive" });
         } finally {
             setIsSubmitting(false);
@@ -77,7 +67,8 @@ export const AddNewTenantForm = ({ onTenantCreated, onClose }: AddNewTenantFormP
     };
 
     return (
-        <form onSubmit={handleCreateTenant}>
+        // Removed onSubmit from form, as the button will now handle the click
+        <div className="add-new-tenant-form-wrapper"> {/* Changed <form> to <div> to explicitly avoid form nesting issues */}
             <DialogHeader>
                 <DialogTitle>Thêm khách thuê mới</DialogTitle>
                 <DialogDescription>
@@ -116,10 +107,11 @@ export const AddNewTenantForm = ({ onTenantCreated, onClose }: AddNewTenantFormP
             </div>
             <DialogFooter>
                 <Button type="button" variant="ghost" onClick={onClose}>Hủy</Button>
-                <Button type="submit" disabled={isSubmitting}>
+                {/* Changed type="submit" to type="button" and added onClick handler */}
+                <Button type="button" onClick={handleAddTenantClick} disabled={isSubmitting}>
                     {isSubmitting ? "Đang xử lý..." : "Thêm khách thuê"}
                 </Button>
             </DialogFooter>
-        </form>
+        </div> // Changed </form> to </div>
     );
 };

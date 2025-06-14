@@ -184,9 +184,9 @@ const createContract = async (contractData, maChuTro) => {
       }
   
       // --- Cập nhật Trạng thái Phòng (giữ nguyên) ---
-      if (TrangThai === 'Có hiệu lực') {
+      if (contractStatus === 'Có hiệu lực') { 
         await room.update({ TrangThai: 'Đang thuê' }, { transaction });
-      } else if (TrangThai === 'Mới tạo' && TienCoc > 0) {
+      } else if (contractStatus === 'Mới tạo' && TienCoc > 0) { 
         await room.update({ TrangThai: 'Đặt cọc' }, { transaction });
       }
   

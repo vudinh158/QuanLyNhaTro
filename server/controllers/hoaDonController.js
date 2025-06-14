@@ -93,7 +93,7 @@ exports.getHoaDon = async (req, res, next) => {
             },
             {
               model: Occupant,
-              as: 'tenant'
+              as: 'occupants'
             }
           ]
         },

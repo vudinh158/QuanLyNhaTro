@@ -128,7 +128,7 @@ export default function BillPaymentPage({ params }: { params: { id: string } }) 
             </CardFooter>
           </Card>
         </div>
-      
+
     );
   }
 

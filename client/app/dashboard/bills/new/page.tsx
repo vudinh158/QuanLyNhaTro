@@ -60,6 +60,8 @@ export default function NewBillPage() {
   const [periodStartDate, setPeriodStartDate] = useState<Date | undefined>(undefined);
   const [periodEndDate, setPeriodEndDate] = useState<Date | undefined>(undefined);
 
+  const [currentTab, setCurrentTab] = useState("contract");
+    
   const selectedContract = useMemo(() => {
     return contracts.find(c => c.MaHopDong.toString() === selectedContractId);
   }, [contracts, selectedContractId]);
@@ -403,18 +405,12 @@ export default function NewBillPage() {
                     Hủy
                   </Button>
                   <Button
-                    type="button"
-                    disabled={!selectedContractId}
-                    onClick={() => {
-                      const tabsElement = document.querySelector('[role="tablist"]') as HTMLElement
-                      if (tabsElement) {
-                        const billTab = tabsElement.querySelector('[value="bill"]') as HTMLElement
-                        if (billTab) billTab.click()
-                      }
-                    }}
-                  >
-                    Tiếp theo
-                  </Button>
+                type="button"
+                disabled={!selectedContractId}
+                onClick={() => setCurrentTab("bill")} // Cập nhật state để chuyển tab
+            >
+                Tiếp theo
+            </Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -641,19 +637,13 @@ export default function NewBillPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      const tabsElement = document.querySelector('[role="tablist"]') as HTMLElement
-                      if (tabsElement) {
-                        const contractTab = tabsElement.querySelector('[value="contract"]') as HTMLElement
-                        if (contractTab) contractTab.click()
-                      }
-                    }}
-                  >
-                    Quay lại
-                  </Button>
+                <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCurrentTab("contract")} // Quay lại tab trước
+            >
+                Quay lại
+            </Button>
                   <Button type="submit" disabled={isSubmitting || billItems.length === 0 || totalAmount <= 0}>
                     {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang xử lý...</> : "Tạo hóa đơn"}
                   </Button>
@@ -663,6 +653,5 @@ export default function NewBillPage() {
           </Tabs>
         </form>
       </div>
-
   )
 }

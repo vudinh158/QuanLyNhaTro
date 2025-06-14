@@ -24,15 +24,18 @@ exports.getContract = catchAsync(async (req, res, next) => {
 });
 
 exports.createContract = catchAsync(async (req, res, next) => {
-  if (!req.user || !req.user.MaChuTro) {
-    return next(new AppError('Chỉ chủ trọ mới có thể tạo hợp đồng.', 403));
-  }
-  const newContract = await contractService.createContract(req.body, req.user.landlordProfile.MaChuTro);
-  res.status(201).json({
-    status: 'success',
-    data: { contract: newContract },
+    // Correctly check if the user is a landlord and has a landlord profile with MaChuTro
+    // req.user.landlordProfile will exist if the user's role is 'Chủ trọ' and it was loaded correctly.
+    if (!req.user || !req.user.landlordProfile || !req.user.landlordProfile.MaChuTro) {
+      return next(new AppError('Chỉ chủ trọ mới có thể tạo hợp đồng.', 403));
+    }
+    const newContract = await contractService.createContract(req.body, req.user.landlordProfile.MaChuTro);
+    res.status(201).json({
+      status: 'success',
+      data: { contract: newContract },
+    });
   });
-});
+  
 
 exports.terminateContract = catchAsync(async (req, res, next) => {
     if (!req.user || !req.user.MaChuTro) {

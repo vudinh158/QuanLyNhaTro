@@ -57,16 +57,22 @@ exports.protect = catchAsync(async (req, res, next) => {
 
 exports.restrictTo = (...requiredPermissions) => {
     return (req, res, next) => {
-        // Bây giờ req.user.permissions là một mảng string ['dashboard:read', '...']
-        // nên logic kiểm tra sẽ hoạt động chính xác.
-        const userPermissions = req.user.permissions || [];
+        const userPermissions = req.user?.permissions || []; // Ensure req.user and req.user.permissions are not null/undefined
+
+        logger.info(`--- RestrictTo Check ---`);
+        logger.info(`Requested URL: ${req.method} ${req.originalUrl}`);
+        logger.info(`Required Permissions: [${requiredPermissions.join(', ')}]`);
+        logger.info(`User (MaTK): ${req.user?.MaTK}, Role: ${req.user?.role?.TenVaiTro}`);
+        logger.info(`User Permissions (from req.user): [${userPermissions.join(', ')}]`);
 
         const hasAllPermissions = requiredPermissions.every(perm => userPermissions.includes(perm));
 
         if (!hasAllPermissions) {
-            logger.warn(`Phân quyền thất bại: Người dùng ${req.user?.MaTK} thiếu quyền (cần: ${requiredPermissions.join(', ')}; có: ${userPermissions.join(', ')}) cho yêu cầu ${req.method} ${req.originalUrl}`);
+            logger.warn(`PERMISSION DENIED: User ${req.user?.TenDangNhap} (ID: ${req.user?.MaTK}) lacks required permissions.`);
+            logger.warn(`Missing: [${requiredPermissions.filter(p => !userPermissions.includes(p)).join(', ')}]`);
             return next(new AppError('Bạn không có quyền thực hiện hành động này.', 403));
         }
+        logger.info(`PERMISSION GRANTED: User ${req.user?.TenDangNhap} (ID: ${req.user?.MaTK}) has all required permissions.`);
         next();
     };
 };
