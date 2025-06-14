@@ -653,6 +653,5 @@ export default function NewBillPage() {
           </Tabs>
         </form>
       </div>
-    </DashboardLayout>
   )
 }
