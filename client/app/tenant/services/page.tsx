@@ -1,180 +1,192 @@
-import DashboardLayout from "@/components/dashboard/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Wifi, ShoppingBag } from "lucide-react"
+// file: clone nhatro/client/app/tenant/services/page.tsx
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/ui/use-toast';
+import { getCurrentContract } from '@/services/contractService';
+import { getTenantServiceUsages } from '@/services/serviceusageService'; // Sẽ tạo hàm này
+import { IContract } from '@/types/contract';
+import { IServiceUsage } from '@/types/serviceUsage'; // Import service usage type
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { format } from 'date-fns';
+import { AlertCircle, FileText, Hammer, BookOpen } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function TenantServicesPage() {
-  // Dữ liệu mẫu cho dịch vụ cố định
-  const fixedServices = [
-    {
-      id: 1,
-      name: "Internet",
-      description: "Wifi tốc độ cao không giới hạn",
-      price: 100000,
-      unit: "tháng",
-      startDate: "01/01/2025",
-      status: "Đang sử dụng",
-    },
-    {
-      id: 2,
-      name: "Dọn phòng",
-      description: "Dọn dẹp phòng 2 lần/tuần",
-      price: 200000,
-      unit: "tháng",
-      startDate: "01/01/2025",
-      status: "Đang sử dụng",
-    },
-  ]
+    const { toast } = useToast();
+    const router = useRouter();
+    const [loading, setLoading] = useState(true);
+    const [contract, setContract] = useState<IContract | null>(null);
+    const [serviceUsages, setServiceUsages] = useState<IServiceUsage[]>([]);
+    const [error, setError] = useState<string | null>(null);
 
-  // Dữ liệu mẫu cho dịch vụ theo lượng
-  const usageServices = [
-    {
-      id: 1,
-      date: "15/04/2025",
-      name: "Giặt ủi",
-      quantity: 5,
-      unit: "kg",
-      price: 20000,
-      total: 100000,
-      status: "Đã thanh toán",
-    },
-    {
-      id: 2,
-      date: "10/04/2025",
-      name: "Nước uống",
-      quantity: 2,
-      unit: "bình",
-      price: 40000,
-      total: 80000,
-      status: "Đã thanh toán",
-    },
-    {
-      id: 3,
-      date: "05/04/2025",
-      name: "Giặt ủi",
-      quantity: 3,
-      unit: "kg",
-      price: 20000,
-      total: 60000,
-      status: "Đã thanh toán",
-    },
-    {
-      id: 4,
-      date: "28/03/2025",
-      name: "Nước uống",
-      quantity: 1,
-      unit: "bình",
-      price: 40000,
-      total: 40000,
-      status: "Đã thanh toán",
-    },
-  ]
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const currentContract = await getCurrentContract(); // Lấy hợp đồng hiện tại
+                setContract(currentContract);
 
-  return (
-    <DashboardLayout userRole="tenant">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Dịch vụ</h1>
-          <div className="flex items-center gap-2">
-            <Select defaultValue="all">
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Chọn kỳ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả kỳ</SelectItem>
-                <SelectItem value="04-2025">Tháng 4/2025</SelectItem>
-                <SelectItem value="03-2025">Tháng 3/2025</SelectItem>
-                <SelectItem value="02-2025">Tháng 2/2025</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                if (currentContract) {
+                    // Lấy các dịch vụ cố định (đã đăng ký trong hợp đồng)
+                    // Chúng ta đã có registeredServices trong contract object từ getContractById/getCurrentContract
+                    // Vì vậy không cần gọi API riêng nếu contract đã được include đầy đủ.
+
+                    // Lấy lịch sử sử dụng dịch vụ (nếu có)
+                    // Cần tạo hàm này trong serviceusageService.ts
+                    const usages = await getTenantServiceUsages(); // Gọi service mới
+                    setServiceUsages(usages);
+                } else {
+                    toast({
+                        title: "Thông báo",
+                        description: "Bạn chưa có hợp đồng thuê phòng đang hoạt động.",
+                        variant: "default",
+                    });
+                }
+            } catch (err: any) {
+                console.error("Lỗi khi tải dữ liệu trang dịch vụ:", err);
+                setError(err.message || "Không thể tải dữ liệu dịch vụ. Vui lòng thử lại.");
+                toast({
+                    title: "Lỗi",
+                    description: err.message || "Không thể tải dữ liệu từ server.",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [toast, router]);
+
+    if (loading) {
+        return (
+            <div className="space-y-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-96 w-full" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="text-center py-8">
+                <AlertCircle className="mx-auto h-12 w-12 text-red-500/50" />
+                <h3 className="mt-4 text-lg font-medium">Lỗi</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+                <Button className="mt-4" onClick={() => router.refresh()}>Thử lại</Button>
+            </div>
+        );
+    }
+
+    if (!contract) {
+        return (
+            <div className="text-center py-8">
+                <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <h3 className="mt-4 text-lg font-medium">Không tìm thấy hợp đồng đang hoạt động</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                    Bạn cần có một hợp đồng thuê phòng đang có hiệu lực để xem thông tin dịch vụ.
+                </p>
+                <Button className="mt-4" asChild>
+                    <Link href="/tenant/contracts">Xem hợp đồng của tôi</Link>
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <h1 className="text-2xl font-bold">Dịch vụ phòng {contract.room?.TenPhong || 'N/A'}</h1>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Dịch vụ cố định đã đăng ký</CardTitle>
+                    <CardDescription>Các dịch vụ được bao gồm trong hợp đồng của bạn.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {contract.registeredServices && contract.registeredServices.length > 0 ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Tên dịch vụ</TableHead>
+                                    <TableHead>Đơn vị tính</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {contract.registeredServices.map((service) => (
+                                    <TableRow key={service.MaDV}>
+                                        <TableCell>{service.TenDV}</TableCell>
+                                        <TableCell>{service.DonViTinh || 'N/A'}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="text-center py-4 text-muted-foreground">Không có dịch vụ cố định nào được đăng ký trong hợp đồng này.</div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Lịch sử sử dụng dịch vụ khác</CardTitle>
+                    <CardDescription>Các dịch vụ bạn đã sử dụng thêm ngoài hợp đồng.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {serviceUsages && serviceUsages.length > 0 ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Dịch vụ</TableHead>
+                                    <TableHead>Ngày sử dụng</TableHead>
+                                    <TableHead>Số lượng</TableHead>
+                                    <TableHead>Thành tiền</TableHead>
+                                    <TableHead>Ghi chú</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {serviceUsages.map((usage) => (
+                                    <TableRow key={usage.MaSuDungDV}>
+                                        <TableCell>{usage.service?.TenDV || 'N/A'}</TableCell>
+                                        <TableCell>{format(new Date(usage.NgaySuDung), 'dd/MM/yyyy')}</TableCell>
+                                        <TableCell>{usage.SoLuong}</TableCell>
+                                        <TableCell>{usage.ThanhTien ? Number(usage.ThanhTien).toLocaleString("vi-VN") + ' VNĐ' : 'N/A'}</TableCell>
+                                        <TableCell>{usage.GhiChu || 'Không có'}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="text-center py-4 text-muted-foreground">Chưa có dịch vụ sử dụng nào được ghi nhận cho phòng này.</div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" asChild>
+                    <Link href={`/tenant/bills`}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Xem hóa đơn
+                    </Link>
+                </Button>
+                <Button variant="outline" className="flex-1" asChild>
+                    <Link href={`/tenant/utilities`}>
+                        <Hammer className="mr-2 h-4 w-4" />
+                        Xem điện nước
+                    </Link>
+                </Button>
+                 <Button variant="outline" className="flex-1" asChild>
+                    <Link href={`/tenant/contracts/${contract.MaHopDong}`}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Xem hợp đồng
+                    </Link>
+                </Button>
+            </div>
         </div>
-
-        <Tabs defaultValue="fixed">
-          <TabsList>
-            <TabsTrigger value="fixed" className="flex items-center gap-1">
-              <Wifi className="h-4 w-4" />
-              Dịch vụ cố định
-            </TabsTrigger>
-            <TabsTrigger value="usage" className="flex items-center gap-1">
-              <ShoppingBag className="h-4 w-4" />
-              Dịch vụ theo lượng
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="fixed" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Dịch vụ cố định đã đăng ký</CardTitle>
-                <CardDescription>Các dịch vụ cố định hàng tháng bạn đang sử dụng</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border">
-                  <div className="grid grid-cols-12 gap-2 p-3 font-medium text-sm border-b">
-                    <div className="col-span-3">Tên dịch vụ</div>
-                    <div className="col-span-4">Mô tả</div>
-                    <div className="col-span-2 text-right">Giá</div>
-                    <div className="col-span-2">Ngày bắt đầu</div>
-                    <div className="col-span-1">Trạng thái</div>
-                  </div>
-
-                  {fixedServices.map((service) => (
-                    <div key={service.id} className="grid grid-cols-12 gap-2 p-3 border-b last:border-0 items-center">
-                      <div className="col-span-3 font-medium">{service.name}</div>
-                      <div className="col-span-4">{service.description}</div>
-                      <div className="col-span-2 text-right">
-                        {service.price.toLocaleString("vi-VN")} VNĐ/{service.unit}
-                      </div>
-                      <div className="col-span-2">{service.startDate}</div>
-                      <div className="col-span-1">
-                        <Badge variant="outline">{service.status}</Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="usage" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Lịch sử sử dụng dịch vụ theo lượng</CardTitle>
-                <CardDescription>Các dịch vụ theo lượng bạn đã sử dụng</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border">
-                  <div className="grid grid-cols-12 gap-2 p-3 font-medium text-sm border-b">
-                    <div className="col-span-2">Ngày</div>
-                    <div className="col-span-3">Tên dịch vụ</div>
-                    <div className="col-span-2 text-right">Số lượng</div>
-                    <div className="col-span-2 text-right">Đơn giá</div>
-                    <div className="col-span-2 text-right">Thành tiền</div>
-                    <div className="col-span-1">Trạng thái</div>
-                  </div>
-
-                  {usageServices.map((service) => (
-                    <div key={service.id} className="grid grid-cols-12 gap-2 p-3 border-b last:border-0 items-center">
-                      <div className="col-span-2">{service.date}</div>
-                      <div className="col-span-3 font-medium">{service.name}</div>
-                      <div className="col-span-2 text-right">
-                        {service.quantity} {service.unit}
-                      </div>
-                      <div className="col-span-2 text-right">{service.price.toLocaleString("vi-VN")} VNĐ</div>
-                      <div className="col-span-2 text-right">{service.total.toLocaleString("vi-VN")} VNĐ</div>
-                      <div className="col-span-1">
-                        <Badge variant={service.status === "Đã thanh toán" ? "outline" : "secondary"}>
-                          {service.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </DashboardLayout>
-  )
+    );
 }

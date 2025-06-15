@@ -9,6 +9,9 @@ const {
 } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
+const catchAsync = require('../utils/catchAsync');
+const serviceUsageService = require('../services/serviceUsageService');
+
 
 exports.createSuDungDichVu = async (req, res, next) => {
   try {
@@ -162,3 +165,15 @@ exports.deleteSuDungDichVu = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getTenantServiceUsages = catchAsync(async (req, res, next) => {
+    if (!req.user || !req.user.tenantProfile || !req.user.tenantProfile.MaKhachThue) {
+        return next(new AppError('Thông tin khách thuê không hợp lệ.', 400));
+    }
+    const usages = await serviceUsageService.getAllServiceUsagesForTenant(req.user.tenantProfile.MaKhachThue);
+    res.status(200).json({
+        status: 'success',
+        results: usages.length,
+        data: { usages } // Đảm bảo trả về dưới key 'usages'
+    });
+});

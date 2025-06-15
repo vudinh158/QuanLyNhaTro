@@ -5,13 +5,15 @@ const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
 router
   .route('/')
-  .post(protect, restrictTo('Ghi nhận sử dụng dịch vụ'), suDungDichVuController.createSuDungDichVu)
-  .get(protect, restrictTo('Xem sử dụng dịch vụ'), suDungDichVuController.getAllSuDungDichVu);
+  .post(protect, restrictTo('service_usage:create'), suDungDichVuController.createSuDungDichVu)
+  .get(protect, restrictTo('service_usage:read_own_property'), suDungDichVuController.getAllSuDungDichVu);
+
+router.get('/my-usages', protect, restrictTo('service_usage:read_self'), suDungDichVuController.getTenantServiceUsages);
 
 router
   .route('/:id')
-  .get(protect, restrictTo('Xem sử dụng dịch vụ'), suDungDichVuController.getSuDungDichVu)
-  .patch(protect, restrictTo('Sửa sử dụng dịch vụ'), suDungDichVuController.updateSuDungDichVu)
-  .delete(protect, restrictTo('Xóa sử dụng dịch vụ'), suDungDichVuController.deleteSuDungDichVu);
+  .get(protect, restrictTo('service_usage:read_own_property'), suDungDichVuController.getSuDungDichVu)
+  .patch(protect, restrictTo('service_usage:update'), suDungDichVuController.updateSuDungDichVu)
+  .delete(protect, restrictTo('service_usage:delete'), suDungDichVuController.deleteSuDungDichVu);
 
 module.exports = router;

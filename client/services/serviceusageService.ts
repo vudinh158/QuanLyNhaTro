@@ -1,5 +1,7 @@
 import api from '@/lib/axios'; // Import your axios instance
 import { getToken } from '@/lib/utils'; // Assuming you have a utility to get the auth token
+import { IServiceUsage } from '@/types/serviceUsage'; 
+import { ApiResponse } from '@/types/api';
 
 interface CreateServiceUsageData {
     MaPhong: number;
@@ -67,6 +69,24 @@ export const getAllSuDungDichVu = async (params?: GetAllServiceUsagesParams): Pr
         throw new Error(error.response?.data?.message || 'Lỗi khi lấy danh sách ghi nhận sử dụng dịch vụ');
     }
 };
+
+export const getTenantServiceUsages = async (): Promise<IServiceUsage[]> => {
+    try {
+      // Gọi API đã định nghĩa trong server/routes/suDungDichVu.js
+      const response = await api.get<ApiResponse<{ usages: IServiceUsage[] }>>('/su-dung-dich-vu/my-usages');
+      
+      if (response.data && response.data.data && Array.isArray(response.data.data.usages)) {
+        return response.data.data.usages;
+      }
+      
+      console.warn("Dữ liệu dịch vụ sử dụng trả về không hợp lệ:", response.data);
+      return [];
+  
+    } catch (error: any) {
+      console.error("Error fetching tenant service usages:", error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Không thể tải dịch vụ sử dụng.');
+    }
+  };
 
 // You might also need update and delete functions for `SuDungDichVu` later,
 // especially if the spec allows modifying 'Mới ghi' entries.

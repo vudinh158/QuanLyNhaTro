@@ -2,7 +2,7 @@
 const contractService = require('../services/contractService');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
-const { Contract, Occupant, Room, Property, Tenant, UserAccount } = require('../models'); 
+const { Contract, Occupant, Room, Property, Tenant, UserAccount, Service } = require('../models'); 
 
 // exports.getAllContracts = catchAsync(async (req, res, next) => {
 //   if (!req.user || !req.user.MaChuTro) {
@@ -114,7 +114,13 @@ exports.getCurrentUserContract = catchAsync(async (req, res, next) => {
               model: Property,
               as: 'property'
           }]
-        }
+          },
+          {
+            model: Service,
+            as: 'registeredServices', // Đảm bảo alias này khớp với association trong Contract model
+            attributes: ['MaDV', 'TenDV', 'DonViTinh'], // Lấy các thuộc tính cần thiết của Service
+            through: { attributes: [] } // Bỏ qua các thuộc tính của bảng trung gian HopDong_DichVuDangKy
+          }
       ]
     });
   
