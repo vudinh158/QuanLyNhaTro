@@ -61,7 +61,7 @@ module.exports = (sequelize, DataTypes) => {
         as: 'servicePriceUpdates'
     });
     Landlord.hasMany(models.PaymentDetail, {
-        foreignKey: 'MaNguoiNhanTK',
+        foreignKey: 'MaNguoiNhan',
         as: 'receivedPayments'
     });
   };

@@ -6,9 +6,13 @@ import type { IPaymentDetail } from './payment'; // Assuming you have a payment 
 export interface IInvoice {
     MaHoaDon: number;
     MaHopDong: number;
-    KyThanhToan: string; // Ví dụ: '2025-06-01' (This seems to be a date for the period start)
-    TuNgay: string; // Start date of the billing period
-    DenNgay: string; // End date of the billing period
+    KyThanhToan_TuNgay: string; // "YYYY-MM-DD" - Khớp với API
+    KyThanhToan_DenNgay: string; // "YYYY-MM-DD" - Khớp với API
+    TienPhong: number;
+    TongTienDien: number;
+    TongTienNuoc: number;
+    TongTienDichVu: number; // Tổng tiền dịch vụ sử dụng
+
     TongTienPhaiTra: number;
     TrangThaiThanhToan: 'Chưa thanh toán' | 'Đã thanh toán' | 'Quá hạn' | 'Đã hủy';
     NgayHanThanhToan: string;
@@ -20,6 +24,7 @@ export interface IInvoice {
     room?: Room; // Mặc dù phòng có thể lấy qua hợp đồng, đôi khi có thể include trực tiếp
     details?: IInvoiceDetail[]; // Details from ChiTietHoaDon
     paymentDetails?: IPaymentDetail[]; // Payment history for this invoice (assuming this is still desired via include)
+    
 }
 
 // Định nghĩa cấu trúc cho chi tiết một hóa đơn

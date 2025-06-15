@@ -79,37 +79,68 @@ exports.getDienNuoc = async (req, res, next) => {
 };
 
 exports.getAllDienNuoc = async (req, res, next) => {
-  try {
-    const where = {};
-    if (req.user.TenVaiTro === 'Chủ trọ') {
-      where['$room.property.MaChuTro$'] = req.user.MaChuTro;
-    } else if (req.user.TenVaiTro === 'Khách thuê') {
-      where['$room.contracts.occupants.MaKhachThue$'] = req.user.MaKhachThue;
-    }
-
-    const dienNuocs = await ElectricWaterUsage.findAll({
-      where,
-      include: [
-        {
-          model: Room,
-          as: 'room',
+    try {
+      let whereClause = {}; // Điều kiện lọc chính cho ElectricWaterUsage
+      const { roomId } = req.query; // Thêm roomId vào query params nếu frontend gửi lên
+  
+      // Lọc theo roomId nếu có (để dùng khi chủ trọ xem riêng từng phòng hoặc frontend gửi lên)
+      if (roomId) {
+        whereClause.MaPhong = roomId;
+      }
+  
+      if (req.user.role.TenVaiTro === 'Chủ trọ') { // Chủ trọ
+        whereClause['$room.property.MaChuTro$'] = req.user.landlordProfile.MaChuTro;
+      } else if (req.user.role.TenVaiTro === 'Khách thuê') { // Khách thuê
+        // Tìm hợp đồng đang hoạt động của khách thuê này để lấy MaPhong
+        const activeContract = await Contract.findOne({
+          where: { TrangThai: 'Có hiệu lực' },
           include: [
-            { model: Property, as: 'property' },
             {
-              model: Contract,
-              as: 'contracts',
-              include: [{ model: Occupant, as: 'occupants' }]
+              model: Occupant,
+              as: 'occupants',
+              where: { MaKhachThue: req.user.tenantProfile.MaKhachThue },
+              required: true // Đảm bảo chỉ lấy hợp đồng có khách thuê này
             }
           ]
-        },
-      ],
-    });
-
-    res.status(200).json({ status: 'success', results: dienNuocs.length, data: dienNuocs });
-  } catch (error) {
-    next(error);
-  }
-};
+        });
+  
+        if (activeContract) {
+          whereClause.MaPhong = activeContract.MaPhong; // Lọc theo MaPhong của hợp đồng đang hoạt động
+        } else {
+          // Nếu khách thuê không có hợp đồng đang hoạt động, trả về mảng rỗng
+          return res.status(200).json({ status: 'success', results: 0, data: [] });
+        }
+      }
+  
+      const dienNuocs = await ElectricWaterUsage.findAll({
+        where: whereClause, // Áp dụng điều kiện lọc ở đây
+        include: [
+          {
+            model: Room,
+            as: 'room',
+            // required: true, // Không cần required nếu đã lọc MaPhong ở whereClause.
+            include: [
+              { model: Property, as: 'property' },
+              // Không cần include Contracts và Occupants ở đây nếu đã lọc MaPhong ở trên,
+              // hoặc nếu cần để hiển thị thêm thông tin trong response.
+              // Nếu chỉ để lọc, việc lấy MaPhong trước là hiệu quả hơn.
+              // {
+              //   model: Contract,
+              //   as: 'contracts',
+              //   include: [{ model: Occupant, as: 'occupants' }]
+              // }
+            ]
+          },
+        ],
+        order: [['NgayGhi', 'DESC']] // Sắp xếp theo ngày ghi mới nhất
+      });
+  
+      res.status(200).json({ status: 'success', results: dienNuocs.length, data: dienNuocs });
+    } catch (error) {
+      console.error("Server-side error in getAllDienNuoc:", error);
+      next(error);
+    }
+  };
 
 exports.getAllDienNuocRecords = async (req, res, next) => {
   try {

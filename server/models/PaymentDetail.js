@@ -27,7 +27,7 @@ module.exports = (sequelize, DataTypes) => {
     MaGiaoDich: {
       type: DataTypes.STRING(100),
     },
-    MaNguoiNhanTK: {
+    MaNguoiNhan: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
@@ -52,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
       as: 'paymentMethod'
     });
     PaymentDetail.belongsTo(models.Landlord, {
-      foreignKey: 'MaNguoiNhanTK',
+      foreignKey: 'MaNguoiNhan',
       as: 'receiver' // Người nhận tiền là Chủ Trọ
     });
   };

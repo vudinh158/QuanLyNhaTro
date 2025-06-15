@@ -31,7 +31,10 @@ export default function BillPaymentPage({ params }: { params: { id: string } }) 
   const [maGiaoDich, setMaGiaoDich] = useState<string>('');
   const [ghiChu, setGhiChu] = useState<string>('');
 
-  const invoiceId = Number(params.id);
+  const { id: paramId } = useParams(); // Lấy id từ hook useParams()
+  
+      // Chuyển đổi paramId sang dạng số
+      const invoiceId = Number(paramId);
 
   useEffect(() => {
     if (isNaN(invoiceId)) {
@@ -172,7 +175,7 @@ export default function BillPaymentPage({ params }: { params: { id: string } }) 
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Kỳ thanh toán:</span>
-                    <span>{format(new Date(invoice.TuNgay), 'dd/MM/yyyy')} - {format(new Date(invoice.DenNgay), 'dd/MM/yyyy')}</span>
+                    <span>{format(new Date(invoice.KyThanhToan_TuNgay), 'dd/MM/yyyy')} - {format(new Date(invoice.KyThanhToan_DenNgay), 'dd/MM/yyyy')}</span>
                   </div>
                 </div>
                 <div className="space-y-2">

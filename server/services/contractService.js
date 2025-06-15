@@ -55,6 +55,9 @@ const getAllContractsForLandlord = async (maChuTro, queryParams = {}) => {
 /** Lấy chi tiết một hợp đồng */
 const getContractById = async (maHopDong, user) => {
     // Chi tiết các bảng cần include để lấy đủ thông tin
+    if (isNaN(maHopDong) || maHopDong <= 0) {
+        throw new AppError('Mã hợp đồng không hợp lệ trong service getContractById.', 400);
+    }
     const contract = await Contract.findByPk(maHopDong, {
         include: [
             { model: Room, as: 'room', include: [{model: Property, as: 'property'}] },

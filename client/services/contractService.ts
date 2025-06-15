@@ -35,7 +35,7 @@ export const terminateContract = async (id: number): Promise<IContract> => {
 
 export const getCurrentContract = async (): Promise<IContract> => {
   try {
-      const response = await api.get<ApiResponse<{ contract: IContract }>>('/hop-dong/current');
+      const response = await api.get<ApiResponse<{ contract: IContract }>>('/contracts/current');
       if (response.data && response.data.data && response.data.data.contract) {
           return response.data.data.contract;
       }

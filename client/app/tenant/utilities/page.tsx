@@ -39,8 +39,8 @@ export default function TenantUtilitiesPage() {
         setContractInfo(contractRes)
         
         // Phân loại dữ liệu điện và nước
-        setElectricData(usageRes.filter(item => item.Loai === 'dien'))
-        setWaterData(usageRes.filter(item => item.Loai === 'nuoc'))
+        setElectricData(usageRes.filter(item => item.Loai === 'Điện'))
+        setWaterData(usageRes.filter(item => item.Loai === 'Nước'))
 
       } catch (err: any) {
         console.error("Failed to fetch utilities data:", err)
@@ -61,18 +61,21 @@ export default function TenantUtilitiesPage() {
   // Lọc dữ liệu theo kỳ được chọn
   const filteredElectricData = useMemo(() => {
     if (selectedPeriod === "all") return electricData;
-    return electricData.filter(item => `${format(new Date(item.Ky), 'MM-yyyy')}` === selectedPeriod);
+    // Sửa item.Ky thành item.NgayGhi
+    return electricData.filter(item => `${format(new Date(item.NgayGhi), 'MM-yyyy')}` === selectedPeriod);
   }, [selectedPeriod, electricData]);
-
+  
   const filteredWaterData = useMemo(() => {
     if (selectedPeriod === "all") return waterData;
-    return waterData.filter(item => `${format(new Date(item.Ky), 'MM-yyyy')}` === selectedPeriod);
+    // Sửa item.Ky thành item.NgayGhi
+    return waterData.filter(item => `${format(new Date(item.NgayGhi), 'MM-yyyy')}` === selectedPeriod);
   }, [selectedPeriod, waterData]);
-
+  
   // Tạo danh sách các kỳ duy nhất để hiển thị trong bộ lọc
   const availablePeriods = useMemo(() => {
     const allRecords = [...electricData, ...waterData];
-    const periods = new Set(allRecords.map(item => format(new Date(item.Ky), 'MM-yyyy')));
+    // Sửa item.Ky thành item.NgayGhi
+    const periods = new Set(allRecords.map(item => format(new Date(item.NgayGhi), 'MM-yyyy')));
     return Array.from(periods);
   }, [electricData, waterData]);
 
@@ -198,13 +201,13 @@ export default function TenantUtilitiesPage() {
 
                   {filteredElectricData.length > 0 ? (
                     filteredElectricData.map((item) => (
-                      <div key={item.MaGhiDienNuoc} className="grid grid-cols-7 gap-2 p-3 border-b last:border-0 items-center text-sm">
-                        <div className="col-span-1">{format(new Date(item.Ky), 'MM/yyyy')}</div>
-                        <div className="col-span-1 text-right">{item.ChiSoCu}</div>
-                        <div className="col-span-1 text-right">{item.ChiSoMoi}</div>
-                        <div className="col-span-1 text-right font-medium">{item.SoTieuThu}</div>
-                        <div className="col-span-1 text-right">{item.DonGia?.toLocaleString("vi-VN")} VNĐ</div>
-                        <div className="col-span-1 text-right font-semibold">{item.ThanhTien?.toLocaleString("vi-VN")} VNĐ</div>
+                      <div key={item.MaDienNuoc} className="grid grid-cols-7 gap-2 p-3 border-b last:border-0 items-center text-sm">
+                        <div className="col-span-1">{format(new Date(item.NgayGhi), 'MM/yyyy')}</div>
+                        <div className="col-span-1 text-right">{item.ChiSoDau}</div>
+                        <div className="col-span-1 text-right">{item.ChiSoCuoi}</div>
+                        <div className="col-span-1 text-right font-medium">{item.SoLuongTieuThu}</div>
+                        <div className="col-span-1 text-right">{item.DonGia?.toLocaleString()} VNĐ</div>
+                        <div className="col-span-1 text-right font-semibold">{item.ThanhTien?.toLocaleString()} VNĐ</div>
                         <div className="col-span-1">{format(new Date(item.NgayGhi), 'dd/MM/yyyy')}</div>
                       </div>
                     ))
@@ -237,13 +240,13 @@ export default function TenantUtilitiesPage() {
 
                   {filteredWaterData.length > 0 ? (
                     filteredWaterData.map((item) => (
-                       <div key={item.MaGhiDienNuoc} className="grid grid-cols-7 gap-2 p-3 border-b last:border-0 items-center text-sm">
-                        <div className="col-span-1">{format(new Date(item.Ky), 'MM/yyyy')}</div>
-                        <div className="col-span-1 text-right">{item.ChiSoCu}</div>
-                        <div className="col-span-1 text-right">{item.ChiSoMoi}</div>
-                        <div className="col-span-1 text-right font-medium">{item.SoTieuThu}</div>
-                        <div className="col-span-1 text-right">{item.DonGia?.toLocaleString("vi-VN")} VNĐ</div>
-                        <div className="col-span-1 text-right font-semibold">{item.ThanhTien?.toLocaleString("vi-VN")} VNĐ</div>
+                       <div key={item.MaDienNuoc} className="grid grid-cols-7 gap-2 p-3 border-b last:border-0 items-center text-sm">
+                        <div className="col-span-1">{format(new Date(item.NgayGhi), 'MM/yyyy')}</div>
+                        <div className="col-span-1 text-right">{item.ChiSoDau}</div>
+                        <div className="col-span-1 text-right">{item.ChiSoCuoi}</div>
+                        <div className="col-span-1 text-right font-medium">{item.SoLuongTieuThu}</div>
+                        <div className="col-span-1 text-right">{item.DonGia?.toLocaleString()} VNĐ</div>
+                        <div className="col-span-1 text-right font-semibold">{item.ThanhTien?.toLocaleString()} VNĐ</div>
                         <div className="col-span-1">{format(new Date(item.NgayGhi), 'dd/MM/yyyy')}</div>
                       </div>
                     ))

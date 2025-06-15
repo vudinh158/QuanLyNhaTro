@@ -7,11 +7,11 @@ router
   .route('/')
   .post(protect, restrictTo('invoice:create'), hoaDonController.createHoaDon) // Cập nhật cả quyền tạo hóa đơn
   // Sửa 'Xem hóa đơn' thành 'invoice:read_own_property'
-  .get(protect, restrictTo('invoice:read_own_property'), hoaDonController.getAllHoaDon);
+  .get(protect, restrictTo('invoice:read_own_property', 'invoice:read_self'), hoaDonController.getAllHoaDon);
 
 router
   .route('/:id')
   // Sửa 'Xem hóa đơn' thành 'invoice:read_own_property' (nếu áp dụng cho cả xem chi tiết)
-  .get(protect, restrictTo('invoice:read_own_property'), hoaDonController.getHoaDon);
+  .get(protect, restrictTo('invoice:read_own_property', 'invoice:read_self'), hoaDonController.getHoaDon);
 
 module.exports = router;

@@ -57,22 +57,24 @@ exports.protect = catchAsync(async (req, res, next) => {
 
 exports.restrictTo = (...requiredPermissions) => {
     return (req, res, next) => {
-        const userPermissions = req.user?.permissions || []; // Ensure req.user and req.user.permissions are not null/undefined
-
-        logger.info(`--- RestrictTo Check ---`);
-        logger.info(`Requested URL: ${req.method} ${req.originalUrl}`);
-        logger.info(`Required Permissions: [${requiredPermissions.join(', ')}]`);
-        logger.info(`User (MaTK): ${req.user?.MaTK}, Role: ${req.user?.role?.TenVaiTro}`);
-        logger.info(`User Permissions (from req.user): [${userPermissions.join(', ')}]`);
-
-        const hasAllPermissions = requiredPermissions.every(perm => userPermissions.includes(perm));
-
-        if (!hasAllPermissions) {
-            logger.warn(`PERMISSION DENIED: User ${req.user?.TenDangNhap} (ID: ${req.user?.MaTK}) lacks required permissions.`);
-            logger.warn(`Missing: [${requiredPermissions.filter(p => !userPermissions.includes(p)).join(', ')}]`);
-            return next(new AppError('Bạn không có quyền thực hiện hành động này.', 403));
-        }
-        logger.info(`PERMISSION GRANTED: User ${req.user?.TenDangNhap} (ID: ${req.user?.MaTK}) has all required permissions.`);
-        next();
+      if (!req.user || !req.user.role || !req.user.role.permissions) {
+        return next(new AppError('Bạn không có quyền thực hiện hành động này.', 403));
+      }
+  
+      const userPermissions = req.user.role.permissions.map(perm => perm.TenQuyen);
+  
+      // Thay đổi logic kiểm tra từ AND sang OR
+      const hasPermission = requiredPermissions.some(rp => userPermissions.includes(rp));
+  
+      if (!hasPermission) {
+        return next(
+          new AppError(
+            `PERMISSION DENIED: User ${req.user.TenDangNhap} (ID: ${req.user.MaTK}) lacks required permissions. Missing: [${requiredPermissions.filter(rp => !userPermissions.includes(rp)).join(', ')}]`,
+            403
+          )
+        );
+      }
+  
+      next();
     };
-};
+  };

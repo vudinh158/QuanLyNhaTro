@@ -68,11 +68,11 @@ app.use("/api/dashboard", dashboardRoutes);
 
 // Phục vụ static files cho client và uploads
 app.use("/api/auth", require("./routes/auth"));
-app.use(express.static(path.join(__dirname, "../client/build")));
+// app.use(express.static(path.join(__dirname, "../client/build")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/build", "index.html"));
-});
+// app.get("*", (req, res) => {
+//   res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+// });
 
 app.use((err, req, res, next) => {
     if (err instanceof AppError) {

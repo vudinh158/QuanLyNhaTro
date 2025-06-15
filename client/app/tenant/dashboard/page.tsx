@@ -110,8 +110,8 @@ export default function TenantDashboardPage() {
                                 <div className="space-y-1">
                                     {/* --- SỬA LỖI Ở ĐÂY --- */}
                                     {/* Bỏ ".notification" và truy cập trực tiếp vào "item.TieuDe" và "item.NoiDung" */}
-                                    <p className="text-sm font-bold">{item.notification.TieuDe}</p>
-                                    <p className="text-sm text-muted-foreground line-clamp-1">{item.notification.NoiDung}</p>
+                                    <p className="text-sm font-bold">{item.TieuDe}</p>
+                                    <p className="text-sm text-muted-foreground line-clamp-1">{item.NoiDung}</p>
                                     {/* --- KẾT THÚC PHẦN SỬA --- */}
                                 </div>
                                 <Button variant="ghost" size="sm" asChild className="ml-auto">

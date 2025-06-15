@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const phuongThucThanhToanController = require('../controllers/phuongThucThanhToanController');
-const { protect, restrictTo } = require('../middlewares/authMiddleware');
+// const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
 router
   .route('/')
-  .post(protect, restrictTo('Tạo phương thức thanh toán'), phuongThucThanhToanController.createPhuongThucThanhToan)
-  .get(protect, restrictTo('Xem phương thức thanh toán'), phuongThucThanhToanController.getAllPhuongThucThanhToan);
+  .post( phuongThucThanhToanController.createPhuongThucThanhToan)
+  .get( phuongThucThanhToanController.getAllPhuongThucThanhToan);
 
 router
   .route('/:id')
-  .get(protect, restrictTo('Xem phương thức thanh toán'), phuongThucThanhToanController.getPhuongThucThanhToan)
-  .patch(protect, restrictTo('Sửa phương thức thanh toán'), phuongThucThanhToanController.updatePhuongThucThanhToan)
-  .delete(protect, restrictTo('Xóa phương thức thanh toán'), phuongThucThanhToanController.deletePhuongThucThanhToan);
+  .get(phuongThucThanhToanController.getPhuongThucThanhToan)
+  .patch(phuongThucThanhToanController.updatePhuongThucThanhToan)
+  .delete(phuongThucThanhToanController.deletePhuongThucThanhToan);
 
 module.exports = router;

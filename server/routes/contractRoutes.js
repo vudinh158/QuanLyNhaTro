@@ -8,6 +8,8 @@ const router = express.Router();
 // Tất cả các route bên dưới đều yêu cầu đăng nhập
 router.use(protect);
 
+router.get('/current', protect, restrictTo('contract:read_self'), contractController.getCurrentUserContract);
+
 // API để lấy danh sách và tạo mới hợp đồng
 router.route('/')
   .get(contractController.getAllContracts)
@@ -20,4 +22,6 @@ router.route('/:id')
 
 router.route('/:id/terminate')
   .patch(restrictTo('contract:terminate_own_property'), contractController.terminateContract);
+
+
 module.exports = router;

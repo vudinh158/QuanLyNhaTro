@@ -166,7 +166,7 @@ export default function TenantBillsPage() {
                       </div>
                       <div className="text-sm">
                         <span className="text-muted-foreground">Kỳ thanh toán:</span>{" "}
-                        <span>{format(new Date(bill.TuNgay), 'dd/MM/yyyy')} - {format(new Date(bill.DenNgay), 'dd/MM/yyyy')}</span>
+                        <span>{format(new Date(bill.KyThanhToan_TuNgay), 'dd/MM/yyyy')} - {format(new Date(bill.KyThanhToan_DenNgay), 'dd/MM/yyyy')}</span>
                       </div>
                     </div>
 
