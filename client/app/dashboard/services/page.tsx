@@ -44,7 +44,7 @@ export default function ServicesPage() {
           },
         })
 
-        setServices(res.data.data || [])
+        setServices(res.data.services || [])
       } catch (err: any) {
         console.error('Lỗi khi tải dịch vụ:', err)
         setError('Không thể tải dữ liệu dịch vụ. Vui lòng kiểm tra đăng nhập hoặc server.')

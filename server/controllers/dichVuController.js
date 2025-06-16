@@ -1,6 +1,8 @@
 const { Service, Property, PropertyAppliedService, Landlord, ServicePriceHistory } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
+const serviceService = require('../services/serviceService');
+const catchAsync = require('../utils/catchAsync');
 
 exports.createDichVu = async (req, res, next) => {
   try {
@@ -48,32 +50,18 @@ exports.createDichVu = async (req, res, next) => {
   }
 };
 
-exports.getAllDichVu = async (req, res, next) => {
-  try {
-    const where = { HoatDong: true };
-    const include = [
-      { model: Property, as: 'propertySpecific' },
-      {
-        model: Property,
-        as: 'appliedToProperties',
-        through: { attributes: [] },
-        include: [{ model: Landlord, as: 'landlord' }]
-      }
-    ];
+exports.getAllServices = catchAsync(async (req, res, next) => {
+    const landlordId = req.user.landlordProfile.MaChuTro;
+    const services = await serviceService.getServicesForLandlord(landlordId);
 
-    if (req.user.TenVaiTro === 'Chủ trọ') {
-      where[Op.or] = [
-        { MaNhaTro: null },
-        { '$appliedToProperties.MaChuTro$': req.user.MaChuTro }
-      ];
-    }
-
-    const services = await Service.findAll({ where, include });
-    res.status(200).json({ status: 'success', results: services.length, data: services });
-  } catch (err) {
-    next(err);
-  }
-};
+    res.status(200).json({
+        status: 'success',
+        results: services.length,
+        data: {
+            services,
+        },
+    });
+});
 
 exports.getDichVu = async (req, res, next) => {
   try {
@@ -221,3 +209,35 @@ exports.deleteDichVu = async (req, res, next) => {
     next(err);
   }
 };
+
+// TẠO DỊCH VỤ
+exports.createService = catchAsync(async (req, res, next) => {
+    const landlordId = req.user.landlordProfile.MaChuTro;
+    const newService = await serviceService.createServiceForLandlord(req.body, landlordId);
+    res.status(201).json({
+        status: 'success',
+        data: { service: newService },
+    });
+});
+
+// SỬA DỊCH VỤ
+exports.updateService = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const landlordId = req.user.landlordProfile.MaChuTro;
+    const updatedService = await serviceService.updateServiceById(id, req.body, landlordId);
+    res.status(200).json({
+        status: 'success',
+        data: { service: updatedService },
+    });
+});
+
+// XÓA DỊCH VỤ
+exports.deleteService = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const landlordId = req.user.landlordProfile.MaChuTro;
+    await serviceService.deleteServiceById(id, landlordId);
+    res.status(204).json({
+        status: 'success',
+        data: null,
+    });
+});
