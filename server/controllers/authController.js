@@ -3,6 +3,7 @@ const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const { UserAccount, Role, Permission, Landlord, Tenant } = require('../models');
 const { validationResult } = require('express-validator');
+const { generateToken } = require('../utils/jwtUtils');
 
 // Hàm này đã đúng, giữ nguyên
 const formatUserResponse = (userObject) => {
@@ -94,11 +95,11 @@ exports.verifyOtp = catchAsync(async (req, res, next) => {
     }
 
     // 2. Logic chính giữ nguyên
-    const { otp, otpToken } = req.body;
-    const user = await authService.verifyOtp(otp, otpToken);
+    const { code, otpToken } = req.body;
+    const user = await authService.verifyOtp(code, otpToken);
 
     // Nếu OTP hợp lệ, đăng nhập cho user và tạo token
-    const token = signToken(user.id);
+    const token = generateToken({ id: user.id });
 
     res.status(200).json({
         status: 'success',

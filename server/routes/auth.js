@@ -33,7 +33,7 @@ router.post(
 router.post(
     "/verify-otp",
     [
-      body("otp").notEmpty().withMessage("OTP không được để trống"),
+      body("code").notEmpty().withMessage("OTP không được để trống"),
       body("otpToken").notEmpty().withMessage("OTP token không được để trống"),
     ],
     authController.verifyOtp
