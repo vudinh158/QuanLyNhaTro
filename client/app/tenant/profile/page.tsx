@@ -93,7 +93,7 @@ export default function TenantProfilePage() {
   }
 
   return (
-    <DashboardLayout userRole="tenant">
+    
       <div className="mx-auto max-w-2xl">
         <h1 className="text-2xl font-bold tracking-tight mb-6">Thông tin cá nhân</h1>
 
@@ -274,6 +274,6 @@ export default function TenantProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+
   )
 }
