@@ -7,6 +7,9 @@ const path = require("path");
 const AppError = require("./utils/AppError");
 
 const authRoutes = require("./routes/auth");
+const requireAuth = require('./middlewares/requireAuth');
+const profileRouter = require('./routes/profile');
+const changePasswordRouter = require('./routes/changePassword');
 const propertyRoutes = require("./routes/propertyRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 const tenantRoutes = require("./routes/tenantRoutes");
@@ -52,6 +55,8 @@ app.use(cors(corsOptions));
 app.use(express.json()); // Thay thế bodyParser để xử lý JSON
 
 // Đăng ký các route
+app.use('/api/profile', requireAuth, profileRouter); // requireAuth: middleware xác thực, gán req.userId
+app.use('/api/change-password', requireAuth, changePasswordRouter);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/tenants", tenantRoutes);
