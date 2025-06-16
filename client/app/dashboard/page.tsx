@@ -66,7 +66,7 @@ const ActionableList = ({ title, items, emptyText, renderItem, icon }: { title: 
             </CardTitle>
         </CardHeader>
         <CardContent>
-            {items.length > 0 ? (
+            {(items || []).length > 0 ? (
                 <div className="space-y-4">
                     {items.map(renderItem)}
                 </div>
