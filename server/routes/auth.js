@@ -33,7 +33,7 @@ router.post(
 router.post(
     "/verify-otp",
     [
-      body("otp").notEmpty().withMessage("OTP không được để trống"),
+      body("code").notEmpty().withMessage("OTP không được để trống"),
       body("otpToken").notEmpty().withMessage("OTP token không được để trống"),
     ],
     authController.verifyOtp
@@ -69,20 +69,7 @@ router.post(
       .isIn(["Nam", "Nữ", "Khác"])
       .withMessage("Giới tính không hợp lệ"),
   ],
-  async (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      // Trả về mảng errors để frontend hiển thị
-      return res.status(400).json({ errors: errors.array() });
-    }
-    try {
-      // Gọi service đã verify OTP từ trước
-      const user = await registerLandlord(req.body);
-      res.json({ message: "Tạo chủ trọ thành công", user });
-    } catch (err) {
-      next(err);
-    }
-  }
+  authController.register
 );
 
 // Các route còn lại

@@ -116,7 +116,7 @@ export default function RegisterPage() {
     const data: UserRegisterData = {
       TenDangNhap: tenDangNhap,
       MatKhau: matKhau,
-      MaVaiTro: 2,
+      MaVaiTro: 1,
       HoTen: hoTen,
       SoDienThoai: soDienThoai,
       Email: email,
