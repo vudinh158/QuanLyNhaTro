@@ -1,49 +1,50 @@
 const express = require('express');
-const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { UserAccount } = require('../models');
+const AppError = require('../utils/AppError');
+const catchAsync = require('../utils/catchAsync');
+const requireAuth = require('../middlewares/requireAuth');
 
-// Đổi mật khẩu
-router.put('/', async (req, res) => {
-  const userId = req.userId; // Lấy từ middleware requireAuth
-  const { currentPassword, newPassword, confirmPassword } = req.body;
+const router = express.Router();
 
-  // Kiểm tra dữ liệu đầu vào
-  if (!currentPassword || !newPassword || !confirmPassword) {
-    return res.status(400).json({ message: 'Vui lòng điền đầy đủ các trường.' });
-  }
+// Tất cả các request tới đây đều đã được xác thực, gán req.userId
+router.use(requireAuth);
 
-  if (newPassword.length < 6) {
-    return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
-  }
+/**
+ * PUT /api/change-password
+ * body: { currentPassword, newPassword }
+ */
+router.put(
+  '/',
+  catchAsync(async (req, res, next) => {
+    const userId = req.userId;
+    const { currentPassword, newPassword } = req.body;
 
-  if (newPassword !== confirmPassword) {
-    return res.status(400).json({ message: 'Mật khẩu mới và xác nhận mật khẩu không khớp.' });
-  }
-
-  try {
-    const userAccount = await UserAccount.findByPk(userId);
-    if (!userAccount) {
-      return res.status(404).json({ message: 'Không tìm thấy tài khoản.' });
+    // 1) Kiểm tra đầu vào
+    if (!currentPassword || !newPassword) {
+      throw new AppError('Vui lòng cung cấp mật khẩu hiện tại và mật khẩu mới.', 400);
     }
 
-    // So sánh mật khẩu hiện tại với mật khẩu trong DB
-    const isMatch = await bcrypt.compare(currentPassword, userAccount.MatKhau);
+    // 2) Tìm User và so sánh mật khẩu hiện tại
+    const user = await UserAccount.findByPk(userId);
+    if (!user) {
+      throw new AppError('Không tìm thấy người dùng.', 404);
+    }
+    const isMatch = await bcrypt.compare(currentPassword, user.MatKhau);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng.' });
+      throw new AppError('Mật khẩu hiện tại không chính xác.', 400);
     }
-    
-    // Cập nhật mật khẩu mới (chưa mã hóa)
-    // Hook trong model UserAccount sẽ tự động băm mật khẩu này trước khi lưu
-    userAccount.MatKhau = newPassword;
-    await userAccount.save();
 
-    res.json({ message: 'Đổi mật khẩu thành công.' });
+    // 3) Cập nhật mật khẩu mới (hash tự động nếu model đã cài hook)
+    user.MatKhau = newPassword;
+    await user.save();
 
-  } catch (error) {
-    console.error('Change password error:', error);
-    res.status(500).json({ message: 'Đã xảy ra lỗi, vui lòng thử lại.' });
-  }
-});
+    // 4) Trả về kết quả
+    res.status(200).json({
+      status: 'success',
+      message: 'Đổi mật khẩu thành công.',
+    });
+  })
+);
 
 module.exports = router;

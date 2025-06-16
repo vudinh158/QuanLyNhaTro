@@ -6,11 +6,13 @@ module.exports = (req, res, next) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Bạn chưa đăng nhập' });
   }
+
   const token = authHeader.split(' ')[1];
   try {
-    // Giả sử dùng secret là 'your_jwt_secret'
+    // Dùng SECRET từ env hoặc fallback
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
-    req.userId = decoded.id; // userId hoặc tên trường đã lưu khi tạo token
+    // Lấy trường id/userId/MaTK bất kỳ có trong payload
+    req.userId = decoded.id || decoded.userId || decoded.MaTK;
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Token không hợp lệ' });
