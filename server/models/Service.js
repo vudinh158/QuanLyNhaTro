@@ -7,10 +7,10 @@ module.exports = (sequelize, DataTypes) => {
       autoIncrement: true,
       allowNull: false,
     },
-    MaNhaTro: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
+    MaChuTro: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
     TenDV: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -41,11 +41,10 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Service.associate = function(models) {
-    Service.belongsTo(models.Property, {
-      foreignKey: 'MaNhaTro',
-      as: 'propertySpecific', // Dịch vụ này là riêng cho một nhà trọ
-      allowNull: true
-    });
+    Service.belongsTo(models.Landlord, {
+        foreignKey: 'MaChuTro',
+        as: 'landlord'
+      });
     Service.hasMany(models.ServicePriceHistory, {
       foreignKey: 'MaDV',
       as: 'priceHistories'

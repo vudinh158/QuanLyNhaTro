@@ -44,10 +44,6 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'MaNhaTro',
       as: 'electricWaterPriceHistories'
     });
-    Property.hasMany(models.Service, { // Dịch vụ riêng của nhà trọ
-      foreignKey: 'MaNhaTro',
-      as: 'specificServices'
-    });
     Property.belongsToMany(models.Service, { // Các dịch vụ áp dụng chung cho nhà trọ
         through: models.PropertyAppliedService,
         foreignKey: 'MaNhaTro',

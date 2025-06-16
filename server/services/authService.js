@@ -263,7 +263,7 @@ const login = async (loginData) => {
   const token = generateToken(payload);
 
   // Trả về đối tượng user đầy đủ và token
-  return { user: fullUser, token };
+    return { user: fullUser, token };
 };
 
 module.exports = {

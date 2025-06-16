@@ -4,52 +4,6 @@ const { Op } = require('sequelize');
 const serviceService = require('../services/serviceService');
 const catchAsync = require('../utils/catchAsync');
 
-exports.createDichVu = async (req, res, next) => {
-  try {
-    const { TenDV, LoaiDichVu, DonViTinh, MaNhaTro, DonGia } = req.body;
-
-    if (!DonGia) return next(new AppError('Vui lòng nhập giá dịch vụ ban đầu', 400));
-
-    if (req.user.TenVaiTro === 'Chủ trọ' && MaNhaTro) {
-      const nhaTro = await Property.findByPk(MaNhaTro);
-      if (!nhaTro || nhaTro.MaChuTro !== req.user.MaChuTro) {
-        throw new AppError('Bạn không có quyền tạo dịch vụ cho nhà trọ này', 403);
-      }
-    }
-
-    const transaction = await Service.sequelize.transaction();
-
-    try {
-      const newService = await Service.create({
-        TenDV,
-        LoaiDichVu,
-        DonViTinh,
-        MaNhaTro: MaNhaTro || null,
-        HoatDong: true,
-      }, { transaction });
-
-      if (MaNhaTro) {
-        await PropertyAppliedService.create({ MaNhaTro, MaDV: newService.MaDV }, { transaction });
-      }
-
-      await ServicePriceHistory.create({
-        MaDV: newService.MaDV,
-        DonGiaCu: 0,
-        DonGiaMoi: DonGia,
-        NgayApDung: new Date(),
-      }, { transaction });
-
-      await transaction.commit();
-      res.status(201).json({ status: 'success', data: newService });
-    } catch (err) {
-      await transaction.rollback();
-      throw err;
-    }
-  } catch (err) {
-    next(err);
-  }
-};
-
 exports.getAllServices = catchAsync(async (req, res, next) => {
     const landlordId = req.user.landlordProfile.MaChuTro;
     const services = await serviceService.getServicesForLandlord(landlordId);
@@ -63,31 +17,12 @@ exports.getAllServices = catchAsync(async (req, res, next) => {
     });
 });
 
-exports.getDichVu = async (req, res, next) => {
-  try {
+exports.getService = catchAsync(async (req, res, next) => {
     const { id } = req.params;
-    const service = await Service.findByPk(id, {
-      include: [
-        { model: Property, as: 'propertySpecific' },
-        { model: Property, as: 'appliedToProperties' }
-      ]
-    });
-
-    if (!service) throw new AppError('Không tìm thấy dịch vụ', 404);
-
-    if (
-      req.user.TenVaiTro === 'Chủ trọ' &&
-      service.MaNhaTro &&
-      service.propertySpecific?.MaChuTro !== req.user.MaChuTro
-    ) {
-      throw new AppError('Bạn không có quyền xem dịch vụ này', 403);
-    }
-
-    res.status(200).json({ status: 'success', data: service });
-  } catch (err) {
-    next(err);
-  }
-};
+    const landlordId = req.user.landlordProfile.MaChuTro;
+    const service = await serviceService.getServiceById(id, landlordId);
+    res.status(200).json({ status: 'success', data: { service } });
+});
 
 exports.updateGiaDichVu = async (req, res, next) => {
   try {
@@ -149,86 +84,23 @@ exports.updateGiaDichVu = async (req, res, next) => {
   }
 };
 
-exports.updateDichVu = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { TenDV, LoaiDichVu, DonViTinh, MaNhaTro, HoatDong } = req.body;
-
-    const service = await Service.findByPk(id, {
-      include: [{ model: Property, as: 'propertySpecific' }]
-    });
-
-    if (!service) throw new AppError('Service not found', 404);
-
-    if (req.user.TenVaiTro === 'Chủ trọ' && service.MaNhaTro && service.propertySpecific?.MaChuTro !== req.user.MaChuTro) {
-      throw new AppError('You do not have permission to update this service', 403);
-    }
-
-    const transaction = await Service.sequelize.transaction();
-
-    try {
-      await service.update({ TenDV, LoaiDichVu, DonViTinh, MaNhaTro, HoatDong }, { transaction });
-
-      if (MaNhaTro && MaNhaTro !== service.MaNhaTro) {
-        await PropertyAppliedService.destroy({ where: { MaDV: id } }, { transaction });
-        await PropertyAppliedService.create({ MaNhaTro, MaDV: id }, { transaction });
-      }
-
-      await transaction.commit();
-      res.status(200).json({ status: 'success', data: service });
-    } catch (err) {
-      await transaction.rollback();
-      throw err;
-    }
-  } catch (err) {
-    next(err);
-  }
-};
-
-exports.deleteDichVu = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const service = await Service.findByPk(id, {
-      include: [{ model: Property, as: 'propertySpecific' }]
-    });
-
-    if (!service) throw new AppError('Không tìm thấy dịch vụ', 404);
-
-    if (
-      req.user.TenVaiTro === 'Chủ trọ' &&
-      service.MaNhaTro &&
-      service.propertySpecific?.MaChuTro !== req.user.MaChuTro
-    ) {
-      throw new AppError('Bạn không có quyền xóa dịch vụ này', 403);
-    }
-
-    await service.update({ HoatDong: false, NgayNgungCungCap: new Date() });
-    res.status(204).json({ status: 'success', data: null });
-  } catch (err) {
-    next(err);
-  }
-};
-
 // TẠO DỊCH VỤ
 exports.createService = catchAsync(async (req, res, next) => {
+    const { propertyIds, ...serviceData } = req.body;
     const landlordId = req.user.landlordProfile.MaChuTro;
-    const newService = await serviceService.createServiceForLandlord(req.body, landlordId);
-    res.status(201).json({
-        status: 'success',
-        data: { service: newService },
-    });
+    const newService = await serviceService.createServiceForLandlord(serviceData, propertyIds, landlordId);
+    res.status(201).json({ status: 'success', data: { service: newService } });
 });
 
 // SỬA DỊCH VỤ
 exports.updateService = catchAsync(async (req, res, next) => {
     const { id } = req.params;
     const landlordId = req.user.landlordProfile.MaChuTro;
-    const updatedService = await serviceService.updateServiceById(id, req.body, landlordId);
-    res.status(200).json({
-        status: 'success',
-        data: { service: updatedService },
-    });
+    const { propertyIds, ...serviceData } = req.body; // Tách mảng propertyIds ra
+
+    const updatedService = await serviceService.updateServiceById(id, serviceData, propertyIds, landlordId);
+    
+    res.status(200).json({ status: 'success', data: { service: updatedService } });
 });
 
 // XÓA DỊCH VỤ

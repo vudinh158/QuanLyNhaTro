@@ -33,12 +33,9 @@ router.put('/', async (req, res) => {
       return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng.' });
     }
     
-    // Băm mật khẩu mới
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-
-    // Cập nhật mật khẩu mới
-    userAccount.MatKhau = hashedPassword;
+    // Cập nhật mật khẩu mới (chưa mã hóa)
+    // Hook trong model UserAccount sẽ tự động băm mật khẩu này trước khi lưu
+    userAccount.MatKhau = newPassword;
     await userAccount.save();
 
     res.json({ message: 'Đổi mật khẩu thành công.' });

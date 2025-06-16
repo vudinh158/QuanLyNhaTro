@@ -23,7 +23,7 @@ router
   .get(
     // protect,
     restrictTo('service_definition:manage_own_property'),
-    dichVuController.getDichVu
+    dichVuController.getService
   )
   .patch(
     // protect,

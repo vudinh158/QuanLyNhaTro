@@ -11,7 +11,7 @@ export interface IServicePriceHistory {
 
 export interface IService {
     MaDV: number;
-    MaNhaTro: number | null; // Nullable as per Service model
+    MaChuTro: number;
     TenDV: string;
     LoaiDichVu: ServiceType; // <--- ĐÃ SỬA TÊN THUỘC TÍNH TỪ LoaiDV THÀNH LoaiDichVu
     DonViTinh: string;
@@ -19,8 +19,6 @@ export interface IService {
     NgayNgungCungCap?: string | null; // Added based on Service model, optional
     GhiChu?: string | null; // From Service model as TEXT, optional
 
-    // Relations (as returned by controller.getDichVu)
-    propertySpecific?: { MaNhaTro: number; TenNhaTro: string; DiaChi: string; } | null; // If MaNhaTro is set
     appliedToProperties?: { MaNhaTro: number; TenNhaTro: string; }[]; // If applied to multiple properties
     priceHistories?: IServicePriceHistory[]; // From ServicePriceHistory model, fetched in dichVuController.js
 }
@@ -32,6 +30,7 @@ export interface NewServiceData {
     MaNhaTro?: number | null;
     DonGia: number; // Initial price to be recorded in history (DonGiaMoi in price history)
     GhiChu?: string | null; // Added GhiChu for creation
+    propertyIds?: number[];
 }
 
 export interface UpdateServiceData {
@@ -41,4 +40,5 @@ export interface UpdateServiceData {
     MaNhaTro?: number | null; // If service can be moved between properties or made global (unlikely for existing)
     HoatDong?: boolean; // To activate/deactivate
     GhiChu?: string | null; // Added as per the error screenshot and model
+    propertyIds?: number[];
 }

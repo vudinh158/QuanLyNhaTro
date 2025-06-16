@@ -23,7 +23,7 @@ export const getAllServices = async (params?: { propertyId?: number; search?: st
 
         // Nếu dữ liệu không phải là mảng, trả về mảng rỗng để tránh lỗi
         console.warn("Dữ liệu dịch vụ trả về không phải là một mảng:", response.data.data);
-        return [];
+        return response.data.data.services;
 
     } catch (error: any) {
         console.error("Error fetching services:", error.response?.data || error.message);

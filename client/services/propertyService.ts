@@ -5,7 +5,7 @@ import type { ApiResponse } from '@/types/api';
 export const getMyProperties = async (queryParams?: { search?: string, status?: string }): Promise<Property[]> => {
   try {
     const response = await axiosInstance.get<ApiResponse<Property[]>>('/properties', { params: queryParams });
-    return response.data.data.properties as Property[];
+    return response.data.data.properties;
   } catch (error: any) {
     console.error("Error fetching properties:", error);
     throw new Error(error.response?.data?.message || error.message || 'Không thể tải danh sách nhà trọ.');

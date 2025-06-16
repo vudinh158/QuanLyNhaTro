@@ -64,6 +64,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'MaNguoiNhan',
         as: 'receivedPayments'
     });
+    Landlord.hasMany(models.Service, {
+        foreignKey: 'MaChuTro',
+        as: 'services'
+    });
   };
   return Landlord;
 };
