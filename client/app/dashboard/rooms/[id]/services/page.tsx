@@ -249,7 +249,7 @@ export default function RoomServicesPage({ params }: { params: { id: string } })
 
     if (isLoading || authLoading) {
         return (
-            <DashboardLayout>
+            
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                         <Skeleton className="h-8 w-48" />
@@ -257,20 +257,20 @@ export default function RoomServicesPage({ params }: { params: { id: string } })
                     </div>
                     <Skeleton className="h-96 w-full" />
                 </div>
-            </DashboardLayout>
+         
         );
     }
 
     if (!room) {
         return (
-            <DashboardLayout>
+            
                 <div className="flex flex-col items-center justify-center min-h-[60vh]">
                     <h2 className="text-xl font-semibold text-muted-foreground">Không tìm thấy phòng này.</h2>
                     <Button className="mt-4" asChild>
                         <Link href="/dashboard/rooms">Quay lại danh sách phòng</Link>
                     </Button>
                 </div>
-            </DashboardLayout>
+         
         );
     }
 
@@ -278,7 +278,7 @@ export default function RoomServicesPage({ params }: { params: { id: string } })
     const usageServicesAvailable = allAvailableServices.filter(s => s.LoaiDichVu === 'Theo số lượng sử dụng' || s.LoaiDichVu === 'Sự cố/Sửa chữa');
 
     return (
-        <DashboardLayout>
+        
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -556,6 +556,6 @@ export default function RoomServicesPage({ params }: { params: { id: string } })
                     </TabsContent>
                 </Tabs>
             </div>
-        </DashboardLayout>
+     
     );
 }
