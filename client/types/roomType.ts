@@ -5,6 +5,7 @@ export interface RoomType {
     TenLoai: string;
     Gia: number;
     DienTich?: number | null;
+    SoNguoiToiDa?: number | null;
     MoTa?: string | null;
 }
 
@@ -12,6 +13,7 @@ export interface NewRoomTypeData {
     TenLoai: string;
     Gia: number;
     DienTich?: number;
+    SoNguoiToiDa?: number;
     MoTa?: string;
     // MaNhaTro sẽ được thêm tự động từ URL trên frontend
 }
@@ -20,5 +22,6 @@ export interface UpdateRoomTypeData {
     TenLoai?: string;
     Gia?: number;
     DienTich?: number;
+    SoNguoiToiDa?: number;
     MoTa?: string;
 }

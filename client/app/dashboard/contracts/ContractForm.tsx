@@ -38,50 +38,69 @@ import type { IService } from '@/types/service';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { AddNewTenantForm } from '@/components/contracts/add-new-tenant-form';
 
+function isFile(value: any): value is File {
+    return value instanceof File;
+  }
 
 // Định nghĩa schema validation bằng Zod
 const contractFormSchema = z.object({
-  MaPhong: z.coerce.number({ required_error: 'Vui lòng chọn phòng.' }).positive('Vui lòng chọn phòng.'),
-  NgayBatDau: z.date({ required_error: 'Vui lòng chọn ngày bắt đầu.' }),
-  NgayKetThuc: z.date({ required_error: 'Vui lòng chọn ngày kết thúc.' }),
-  TienCoc: z.coerce.number().min(0, 'Tiền cọc không được âm.').default(0),
-  TienThueThoaThuan: z.coerce.number().min(1, 'Tiền thuê phải lớn hơn 0.'),
-  KyThanhToan: z.enum(['Đầu kỳ', 'Cuối kỳ'], { required_error: 'Vui lòng chọn kỳ thanh toán.' }),
-  HanThanhToan: z.coerce.number().min(1, 'Hạn thanh toán phải là số dương.').max(28, 'Hạn thanh toán không quá ngày 28.'),
-  // TrangThai sẽ được tự động gán ở backend, không gửi từ frontend
-  // TrangThai: z.enum(['Mới tạo', 'Có hiệu lực', 'Hết hiệu lực', 'Đã thanh lý']),
-  GhiChu: z.string().optional(),
-  occupants: z.array(z.object({
-    // Cập nhật schema để cho phép cả MaKhachThue (exist) hoặc HoTen/SoDienThoai (new)
-    MaKhachThue: z.number().optional(), // Có thể không có nếu là khách thuê mới
-    isNew: z.boolean().optional(), // Cờ để backend biết đây là khách thuê mới
-    HoTen: z.string().optional(), // Tên là bắt buộc cho khách thuê mới
-    SoDienThoai: z.string().optional(), // SĐT là bắt buộc cho khách thuê mới
-    CCCD: z.string().optional(),
-    Email: z.string().optional(),
-    GioiTinh: z.enum(['Nam', 'Nữ', 'Khác']).optional(),
-    QueQuan: z.string().optional(),
-    LaNguoiDaiDien: z.boolean(),
-  })).min(1, 'Phải có ít nhất một người ở.'),
-  registeredServices: z.array(z.number()).optional(),
-}).refine(data => data.NgayKetThuc > data.NgayBatDau, {
-  message: 'Ngày kết thúc phải sau ngày bắt đầu.',
-  path: ['NgayKetThuc'],
-}).refine(data => data.occupants.filter(o => o.LaNguoiDaiDien).length === 1, {
-  message: 'Phải có đúng một người đại diện.',
-  path: ['occupants'],
+    MaPhong: z.coerce.number({ required_error: 'Vui lòng chọn phòng.' }).positive('Vui lòng chọn phòng.'),
+    NgayBatDau: z.date({ required_error: 'Vui lòng chọn ngày bắt đầu.' }),
+    NgayKetThuc: z.date({ required_error: 'Vui lòng chọn ngày kết thúc.' }),
+    TienCoc: z.coerce.number().min(0, 'Tiền cọc không được âm.').default(0),
+    TienThueThoaThuan: z.coerce.number().min(1, 'Tiền thuê phải lớn hơn 0.'),
+    KyThanhToan: z.enum(['Đầu kỳ', 'Cuối kỳ'], { required_error: 'Vui lòng chọn kỳ thanh toán.' }),
+    HanThanhToan: z.coerce.number().min(1, 'Hạn thanh toán phải là số dương.').max(28, 'Hạn thanh toán không quá ngày 28.'),
+    // TrangThai sẽ được tự động gán ở backend, không gửi từ frontend
+    // TrangThai: z.enum(['Mới tạo', 'Có hiệu lực', 'Hết hiệu lực', 'Đã thanh lý']),
+    FileHopDong: z.any().optional(),
+    GhiChu: z.string().optional(),
+    occupants: z.array(z.object({
+        // Cập nhật schema để cho phép cả MaKhachThue (exist) hoặc HoTen/SoDienThoai (new)
+        MaKhachThue: z.number().optional(), // Có thể không có nếu là khách thuê mới
+        isNew: z.boolean().optional(), // Cờ để backend biết đây là khách thuê mới
+        HoTen: z.string().optional(), // Tên là bắt buộc cho khách thuê mới
+        SoDienThoai: z.string().optional(), // SĐT là bắt buộc cho khách thuê mới
+        CCCD: z.string().optional(),
+        Email: z.string().optional(),
+        NgaySinh: z.string().optional().or(z.literal('')),
+        GioiTinh: z.enum(['Nam', 'Nữ', 'Khác']).optional(),
+        QueQuan: z.string().optional(),
+        AnhGiayTo: z.any().optional(), 
+        GhiChu: z.string().optional().or(z.literal('')),
+        LaNguoiDaiDien: z.boolean(),
+        QuanHeVoiNguoiDaiDien: z.string().optional(), // Add this property
+    })).min(1, 'Phải có ít nhất một người ở.'),
+    registeredServices: z.array(z.number()).optional(),
+}).superRefine((data, ctx) => {
+    // Quy tắc 1: Ngày kết thúc phải sau ngày bắt đầu
+    if (data.NgayKetThuc <= data.NgayBatDau) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Ngày kết thúc phải sau ngày bắt đầu.',
+        path: ['NgayKetThuc'], // Chỉ định lỗi cho trường NgayKetThuc
+      });
+    }
+  
+    // Quy tắc 2: Phải có đúng một người đại diện
+    const representativeCount = data.occupants.filter(o => o.LaNguoiDaiDien).length;
+    if (representativeCount !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        // Tin nhắn lỗi rõ ràng hơn
+        message: `Phải có đúng một người đại diện (hiện tại đang chọn ${representativeCount}).`,
+        // Chỉ định lỗi cho toàn bộ danh sách người ở
+        path: ['occupants'],
+      });
+    }
+  
 });
 
 type ContractFormValues = z.infer<typeof contractFormSchema>;
 
-// Cập nhật IContractPayload ở types/contract.ts để khớp với cấu trúc occupants mới này
-// Trong types/contract.ts, phần `occupants` của `IContractPayload`
-// cần cho phép 2 dạng object: { MaKhachThue: number, LaNguoiDaiDien: boolean }
-// HOẶC { isNew: true, HoTen: string, SoDienThoai: string, ..., LaNguoiDaiDien: boolean }
-
 interface ContractFormProps {
     initialData?: IContract;
-    onSubmitAction: (data: IContractPayload) => Promise<any>;
+    onSubmitAction: (data: FormData) => Promise<any>;
     isSubmitting: boolean;
 }
 
@@ -218,47 +237,89 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
         });
     };
 
-    async function processSubmit(data: ContractFormValues) {
-        // Chuẩn bị payload cho backend
-        const payload: IContractPayload = {
-            ...data,
-            NgayLap: format(new Date(), 'yyyy-MM-dd'),
-            NgayBatDau: format(data.NgayBatDau, 'yyyy-MM-dd'),
-            NgayKetThuc: format(data.NgayKetThuc, 'yyyy-MM-dd'),
-            registeredServices: data.registeredServices || [],
-            // TrangThai không được gửi từ frontend, vì backend sẽ tự xác định
-            // TrangThai: data.TrangThai, // REMOVE THIS LINE or ensure it's not sent if backend controls it
+    // async function processSubmit(data: ContractFormValues) {
+    //     // Chuẩn bị payload cho backend
+    //     const payload: IContractPayload = {
+    //         ...data,
+    //         NgayLap: format(new Date(), 'yyyy-MM-dd'),
+    //         NgayBatDau: format(data.NgayBatDau, 'yyyy-MM-dd'),
+    //         NgayKetThuc: format(data.NgayKetThuc, 'yyyy-MM-dd'),
+    //         registeredServices: data.registeredServices || [],
+    //         // TrangThai không được gửi từ frontend, vì backend sẽ tự xác định
+    //         // TrangThai: data.TrangThai, // REMOVE THIS LINE or ensure it's not sent if backend controls it
 
-            // Ánh xạ occupants để backend biết đâu là khách thuê mới cần tạo
-            occupants: data.occupants.map(occ => {
-                if (occ.isNew) {
-                    // Dữ liệu cho khách thuê mới
-                    return {
-                        isNew: true,
-                        HoTen: occ.HoTen!, // Yêu cầu có HoTen
-                        SoDienThoai: occ.SoDienThoai!, // Yêu cầu có SoDienThoai
-                        CCCD: occ.CCCD,
-                        Email: occ.Email,
-                        GioiTinh: occ.GioiTinh,
-                        QueQuan: occ.QueQuan,
-                        LaNguoiDaiDien: occ.LaNguoiDaiDien
-                    };
-                } else {
-                    // Dữ liệu cho khách thuê đã tồn tại
-                    return {
-                        MaKhachThue: occ.MaKhachThue!, // Yêu cầu có MaKhachThue
-                        LaNguoiDaiDien: occ.LaNguoiDaiDien
-                    };
-                }
-            }) as any, // Dùng 'as any' tạm thời nếu TypeScript vẫn báo lỗi về kiểu union
+    //         // Ánh xạ occupants để backend biết đâu là khách thuê mới cần tạo
+    //         occupants: data.occupants.map(occ => {
+    //             if (occ.isNew) {
+    //                 // Dữ liệu cho khách thuê mới
+    //                 return {
+    //                     isNew: true,
+    //                     HoTen: occ.HoTen!, // Yêu cầu có HoTen
+    //                     SoDienThoai: occ.SoDienThoai!, // Yêu cầu có SoDienThoai
+    //                     CCCD: occ.CCCD,
+    //                     Email: occ.Email,
+    //                     GioiTinh: occ.GioiTinh,
+    //                     QueQuan: occ.QueQuan,
+    //                     LaNguoiDaiDien: occ.LaNguoiDaiDien
+    //                 };
+    //             } else {
+    //                 // Dữ liệu cho khách thuê đã tồn tại
+    //                 return {
+    //                     MaKhachThue: occ.MaKhachThue!, // Yêu cầu có MaKhachThue
+    //                     LaNguoiDaiDien: occ.LaNguoiDaiDien
+    //                 };
+    //             }
+    //         }) as any, // Dùng 'as any' tạm thời nếu TypeScript vẫn báo lỗi về kiểu union
+    //     };
+
+    //     // Đảm bảo TrangThai không bị gửi nếu nó không còn là một phần của payload từ frontend
+    //     if ('TrangThai' in payload) {
+    //         delete (payload as any).TrangThai;
+    //     }
+
+    //     await onSubmitAction(payload);
+    // }
+
+    async function processSubmit(data: ContractFormValues) {
+        // Dữ liệu 'data' nhận vào đã được Zod xác thực thành công!
+        console.log("Validation thành công, dữ liệu nhận được:", data);
+        
+        const formData = new FormData();
+        const newTenantsWithFiles: { file: File; occupantData: any }[] = [];
+        
+        const contractFile = data.FileHopDong?.[0];
+
+        // Tạo payload JSON, đồng thời tách các file ra
+        const occupantsPayload = data.occupants.map(occ => {
+            const occCopy = { ...occ };
+            if (occCopy.isNew && isFile(occCopy.AnhGiayTo)) {
+                newTenantsWithFiles.push({ file: occCopy.AnhGiayTo, occupantData: { ...occCopy } });
+                delete (occCopy as any).AnhGiayTo;
+            }
+            return occCopy;
+        });
+
+        const { FileHopDong, ...jsonDataPayload } = data;
+        const finalJsonData = {
+            ...jsonDataPayload,
+            occupants: occupantsPayload,
+            NgayLap: format(new Date(), "yyyy-MM-dd"),
+            NgayBatDau: format(data.NgayBatDau, "yyyy-MM-dd"),
+            NgayKetThuc: format(data.NgayKetThuc, "yyyy-MM-dd"),
         };
 
-        // Đảm bảo TrangThai không bị gửi nếu nó không còn là một phần của payload từ frontend
-        if ('TrangThai' in payload) {
-            delete (payload as any).TrangThai;
-        }
+        // Đóng gói vào FormData
+        formData.append("contractData", JSON.stringify(finalJsonData));
 
-        await onSubmitAction(payload);
+        if (isFile(contractFile)) {
+            formData.append("FileHopDong", contractFile);
+        }
+        newTenantsWithFiles.forEach((item) => {
+            formData.append("AnhGiayTo", item.file, item.file.name);
+        });
+
+        // Gửi đi
+        await onSubmitAction(formData);
     }
 
     return (
@@ -399,9 +460,37 @@ export function ContractForm({ initialData, onSubmitAction, isSubmitting }: Cont
                                                 </div>
                                             );
                                         })}
-                                        <FormMessage />
+                                        {form.formState.errors.occupants && (
+        <p className="text-sm font-medium text-destructive">
+          { form.formState.errors.occupants.message || form.formState.errors.occupants.root?.message || 'Có lỗi với danh sách người ở, vui lòng kiểm tra lại.' }
+        </p>
+      )}
                                     </FormItem>
-                                )}/>
+                                )} />  
+                                <FormField
+  control={form.control}
+  name="FileHopDong" // Hãy chắc chắn tên này khớp với tên trong Zod schema của bạn
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Tệp hợp đồng đính kèm (PDF/Ảnh)</FormLabel>
+      <FormControl>
+        <Input
+          type="file"
+          accept=".pdf,image/*"
+          // Ghi đè hàm onChange để lấy đúng giá trị FileList
+          onChange={(event) => field.onChange(event.target.files)}
+          // Các thuộc tính còn lại như ref, name, onBlur sẽ được `field` quản lý
+          // Nhưng ta không truyền value và onChange mặc định của nó
+          onBlur={field.onBlur}
+          name={field.name}
+          ref={field.ref}
+        />
+      </FormControl>
+      <FormMessage /> 
+      {/* FormMessage bây giờ sẽ hoạt động chính xác */}
+    </FormItem>
+  )}
+/>
                             </CardContent>
                         </Card>
                         <Card>

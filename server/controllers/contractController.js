@@ -25,12 +25,28 @@ exports.getContract = catchAsync(async (req, res, next) => {
 });
 
 exports.createContract = catchAsync(async (req, res, next) => {
-    // Correctly check if the user is a landlord and has a landlord profile with MaChuTro
-    // req.user.landlordProfile will exist if the user's role is 'Chủ trọ' and it was loaded correctly.
+
+    console.log('--- Bắt đầu xử lý createContract ---');
+    console.log('Request Body:', req.body);
+    console.log('Request Files:', req.files);
+    console.log('------------------------------------');
     if (!req.user || !req.user.landlordProfile || !req.user.landlordProfile.MaChuTro) {
       return next(new AppError('Chỉ chủ trọ mới có thể tạo hợp đồng.', 403));
     }
-    const newContract = await contractService.createContract(req.body, req.user.landlordProfile.MaChuTro);
+  
+    const contractData = JSON.parse(req.body.contractData);
+    
+    // Lấy file từ req.files
+    const tenantFiles = req.files?.AnhGiayTo || [];
+    const contractFile = req.files.FileHopDong ? req.files.FileHopDong[0] : null;
+  
+    const newContract = await contractService.createContract(
+      contractData,
+      req.user.landlordProfile.MaChuTro,
+      tenantFiles, // Truyền mảng file ảnh giấy tờ
+      contractFile  // Truyền file hợp đồng
+    );
+    
     res.status(201).json({
       status: 'success',
       data: { contract: newContract },

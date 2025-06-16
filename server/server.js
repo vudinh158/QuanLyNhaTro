@@ -22,6 +22,7 @@ const phuongThucThanhToanRoutes = require("./routes/phuongThucThanhToan");
 const suDungDichVuRoutes = require("./routes/suDungDichVu");
 const notificationRoutes = require("./routes/notificationRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const roomTypeRoutes = require("./routes/roomTypeRoutes");
 
 const db = require("./models");
 const {
@@ -65,6 +66,7 @@ app.use("/api/phuong-thuc-thanh-toan", phuongThucThanhToanRoutes);
 app.use("/api/su-dung-dich-vu", suDungDichVuRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/room-types", roomTypeRoutes);
 
 // Phục vụ static files cho client và uploads
 app.use("/api/auth", require("./routes/auth"));

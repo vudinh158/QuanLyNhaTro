@@ -15,4 +15,8 @@ router
   // Sửa 'Xem lịch sử giá điện nước' thành tên quyền đúng trong DB
   .get(protect, restrictTo('electric_water_price:manage_own_property'), lichSuGiaDienNuocController.getLichSuGiaDienNuoc);
 
+
+  router.route('/:id')
+      .delete(protect, restrictTo('electric_water_price:manage_own_property'), lichSuGiaDienNuocController.deleteElectricWaterPrice);
+    
 module.exports = router;
