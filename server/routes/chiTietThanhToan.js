@@ -7,12 +7,12 @@ router
   .route('/')
   .post(
     protect,
-    restrictTo('Ghi nhận thanh toán'),
+    // restrictTo('Ghi nhận thanh toán'),
     chiTietThanhToanController.createChiTietThanhToan
   )
   .get(
     protect,
-    restrictTo('Xem lịch sử thanh toán'),
+    // restrictTo('Xem lịch sử thanh toán'),
     chiTietThanhToanController.getAllChiTietThanhToan
   );
 
@@ -20,7 +20,7 @@ router
   .route('/:id')
   .get(
     protect,
-    restrictTo('Xem lịch sử thanh toán'),
+    // restrictTo('Xem lịch sử thanh toán'),
     chiTietThanhToanController.getChiTietThanhToan
   );
 

@@ -12,6 +12,8 @@ router.get('/property/:propertyId', restrictTo('room:read_property_own'), roomCo
 
 router.get('/available-for-contract', restrictTo('contract:create'), roomController.getAvailableRooms);
 
+router.route('/all').get(restrictTo('room:read_property_own'), roomController.getAllRooms);
+
 router.route('/:id')
   .get(restrictTo('room:read_property_own'), roomController.getRoomById)
   .patch(restrictTo('room:update_property_own'), roomController.updateRoom)

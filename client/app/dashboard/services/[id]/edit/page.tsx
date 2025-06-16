@@ -206,21 +206,6 @@ export default function EditServicePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="price"> 
-                  Giá dịch vụ hiện tại (VNĐ) <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="price"
-                  type="number"
-                  placeholder="Nhập giá dịch vụ"
-                  min="0"
-                  value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="type"> 
                   Loại tính phí <span className="text-red-500">*</span>
                 </Label>
@@ -247,15 +232,6 @@ export default function EditServicePage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Mô tả</Label> 
-                <Textarea
-                  id="description"
-                  placeholder="Nhập mô tả về dịch vụ (nếu có)"
-                  value={ghiChu || ""} // Ensure it's not null for the controlled component
-                  onChange={(e) => setGhiChu(e.target.value)}
-                />
-              </div>
             </CardContent>
             <CardFooter className="flex justify-between"> 
               <Button type="button" variant="outline" onClick={() => router.push(`/dashboard/services/${serviceId}`)}> 

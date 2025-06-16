@@ -8,12 +8,12 @@ router
   .route('/')
   .post(
     protect,
-    restrictTo('Tạo chi tiết hóa đơn'),
+    // restrictTo('Tạo chi tiết hóa đơn'),
     chiTietHoaDonController.createChiTietHoaDon
   )
   .get(
     protect,
-    restrictTo('Xem chi tiết hóa đơn'),
+    // restrictTo('Xem chi tiết hóa đơn'),
     chiTietHoaDonController.getAllChiTietHoaDon
   );
 
@@ -21,17 +21,17 @@ router
   .route('/:id')
   .get(
     protect,
-    restrictTo('Xem chi tiết hóa đơn'),
+    // restrictTo('Xem chi tiết hóa đơn'),
     chiTietHoaDonController.getChiTietHoaDon
   )
   .patch(
     protect,
-    restrictTo('Sửa chi tiết hóa đơn'),
+    // restrictTo('Sửa chi tiết hóa đơn'),
     chiTietHoaDonController.updateChiTietHoaDon
   )
   .delete(
     protect,
-    restrictTo('Xóa chi tiết hóa đơn'),
+    // restrictTo('Xóa chi tiết hóa đơn'),
     chiTietHoaDonController.deleteChiTietHoaDon
   );
 

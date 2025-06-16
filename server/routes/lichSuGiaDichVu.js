@@ -5,11 +5,11 @@ const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
 router
   .route('/')
-  .post(protect, restrictTo('Sửa giá dịch vụ'), lichSuGiaDichVuController.createLichSuGiaDichVu)
-  .get(protect, restrictTo('Xem lịch sử giá dịch vụ'), lichSuGiaDichVuController.getAllLichSuGiaDichVu);
+  .post(protect, restrictTo('service_definition:manage_own_property'), lichSuGiaDichVuController.createLichSuGiaDichVu)
+  .get(protect, restrictTo('service_definition:manage_own_property'), lichSuGiaDichVuController.getAllLichSuGiaDichVu);
 
 router
   .route('/:id')
-  .get(protect, restrictTo('Xem lịch sử giá dịch vụ'), lichSuGiaDichVuController.getLichSuGiaDichVu);
+  .get(protect, restrictTo('service_definition:manage_own_property'), lichSuGiaDichVuController.getLichSuGiaDichVu);
 
 module.exports = router;

@@ -70,3 +70,13 @@ export const getAvailableRoomsForContract = async (): Promise<Room[]> => {
         throw new Error(error.response?.data?.message || 'Không thể tải danh sách phòng có sẵn.');
     }
 };
+
+export const getAllRoomsForLandlord = async (): Promise<Room[]> => {
+    try {
+      const response = await axiosInstance.get<ApiResponse<{ rooms: Room[] }>>('/rooms/all');
+      return response.data.data.rooms as Room[];
+    } catch (error: any) {
+      console.error("Error fetching all rooms:", error);
+      throw new Error(error.response?.data?.message || 'Không thể tải danh sách tất cả các phòng.');
+    }
+  };

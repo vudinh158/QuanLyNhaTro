@@ -3,6 +3,18 @@ const { Op } = require('sequelize');
 const { Service, Property, PropertyAppliedService, ServicePriceHistory, ContractRegisteredService, ServiceUsage, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 
+const getServiceAndCheckOwnership = async (serviceId, landlordId) => {
+    const service = await Service.findByPk(serviceId);
+    if (!service) {
+        throw new AppError(`Không tìm thấy dịch vụ với ID ${serviceId}.`, 404);
+    }
+    if (service.MaChuTro !== landlordId) {
+        throw new AppError('Bạn không có quyền truy cập dịch vụ này.', 403);
+    }
+    return service;
+};
+
+
 // LẤY DANH SÁCH DỊCH VỤ
 const getServicesForLandlord = async (landlordId) => {
     return Service.findAll({
@@ -13,7 +25,17 @@ const getServicesForLandlord = async (landlordId) => {
         as: 'appliedToProperties',
         attributes: ['MaNhaTro', 'TenNhaTro'], // Chỉ cần lấy ID và Tên
         through: { attributes: [] } // Không cần lấy thông tin từ bảng trung gian
-      }],
+        },
+        {
+            model: ServicePriceHistory,
+            as: 'priceHistories',
+            where: {
+                NgayApDung: { [Op.lte]: new Date() } // Op.lte = Less than or Equal to
+            },
+            order: [['NgayApDung', 'DESC']], // Sắp xếp để lấy ngày gần nhất
+            limit: 1, // Chỉ lấy 1 bản ghi giá mới nhất và có hiệu lực
+            required: false // Dùng LEFT JOIN để dịch vụ chưa có giá nào vẫn hiển thị
+          }],
       order: [['TenDV', 'ASC']],
     });
   };
@@ -26,6 +48,17 @@ const getServicesForLandlord = async (landlordId) => {
             as: 'appliedToProperties',
             attributes: ['MaNhaTro', 'TenNhaTro'],
             through: { attributes: [] }
+        },
+        {
+            model: ServicePriceHistory,
+        as: 'priceHistories',
+        // Thêm điều kiện where để chỉ lấy giá đã có hiệu lực
+        where: {
+            NgayApDung: { [Op.lte]: new Date() } // Op.lte nghĩa là "Less than or Equal to"
+        },
+        order: [['NgayApDung', 'DESC']], // Vẫn sắp xếp để lấy ngày gần nhất
+        limit: 1,
+        required: false // Dùng LEFT JOIN để dịch vụ chưa có giá vẫn hiển thị
         }]
     });
 
@@ -70,24 +103,28 @@ const createServiceForLandlord = async (serviceData, propertyIdsToApply, landlor
 const updateServiceById = async (serviceId, updateData, propertyIdsToApply, landlordId) => {
     const t = await sequelize.transaction();
     try {
-        const service = await Service.findByPk(serviceId, { transaction: t });
-        if (!service) throw new AppError('Không tìm thấy dịch vụ.', 404);
-        if (service.MaChuTro !== landlordId) throw new AppError('Bạn không có quyền sửa dịch vụ này.', 403);
+        const service = await getServiceAndCheckOwnership(serviceId, landlordId);
 
-        // ... logic kiểm tra ràng buộc sửa các trường quan trọng giữ nguyên ...
+        // Ràng buộc: Không cho sửa các trường quan trọng nếu dịch vụ đã được sử dụng
+        const isCriticalFieldChanged = updateData.LoaiDichVu && updateData.LoaiDichVu !== service.LoaiDichVu;
+        if (isCriticalFieldChanged) {
+            const usageCount = await ContractRegisteredService.count({ where: { MaDV: serviceId } });
+            if (usageCount > 0) {
+                throw new AppError('Không thể sửa loại hình của dịch vụ vì đã có hợp đồng đăng ký.', 400);
+            }
+        }
 
-        // Cập nhật thông tin cơ bản của dịch vụ
+        if (updateData.HoatDong === false) {
+            const registrationCount = await ContractRegisteredService.count({ where: { MaDV: serviceId } });
+            if (registrationCount > 0) {
+                throw new AppError('Không thể ngừng cung cấp dịch vụ vì vẫn còn hợp đồng đang đăng ký.', 400);
+            }
+        }
+
         await service.update(updateData, { transaction: t });
-
-        // Cập nhật lại danh sách nhà trọ được áp dụng
-        // 1. Xóa tất cả các liên kết cũ
         await PropertyAppliedService.destroy({ where: { MaDV: serviceId }, transaction: t });
-        // 2. Tạo lại các liên kết mới dựa trên danh sách được gửi lên
         if (propertyIdsToApply && propertyIdsToApply.length > 0) {
-            const applications = propertyIdsToApply.map(propertyId => ({
-                MaNhaTro: propertyId,
-                MaDV: serviceId,
-            }));
+            const applications = propertyIdsToApply.map(propertyId => ({ MaNhaTro: propertyId, MaDV: serviceId }));
             await PropertyAppliedService.bulkCreate(applications, { transaction: t });
         }
 
@@ -95,19 +132,47 @@ const updateServiceById = async (serviceId, updateData, propertyIdsToApply, land
         return service;
     } catch (error) {
         await t.rollback();
-        throw error;
+        throw error; // Ném lỗi ra để controller bắt
     }
 };
 // XÓA DỊCH VỤ
 const deleteServiceById = async (serviceId, landlordId) => {
-    const service = await Service.findByPk(serviceId);
-    if (!service) throw new AppError('Không tìm thấy dịch vụ.', 404);
-    if (service.MaChuTro !== landlordId) throw new AppError('Bạn không có quyền xóa dịch vụ này.', 403);
+    await getServiceAndCheckOwnership(serviceId, landlordId);
 
-    const usageCount = await ContractRegisteredService.count({ where: { MaDV: serviceId } }) + await ServiceUsage.count({ where: { MaDV: serviceId } });
-    if (usageCount > 0) throw new AppError('Không thể xóa dịch vụ vì đã được sử dụng hoặc đăng ký.', 400);
+    // Ràng buộc: Không cho xóa nếu đã có người đăng ký hoặc sử dụng
+    const registrationCount = await ContractRegisteredService.count({ where: { MaDV: serviceId } });
+    if (registrationCount > 0) {
+        throw new AppError(`Không thể xóa dịch vụ vì đã có ${registrationCount} hợp đồng đăng ký.`, 400);
+    }
+    const usageCount = await ServiceUsage.count({ where: { MaDV: serviceId } });
+    if (usageCount > 0) {
+        throw new AppError(`Không thể xóa dịch vụ vì đã có ${usageCount} lượt sử dụng được ghi nhận.`, 400);
+    }
+    
+    // Nếu an toàn, tiến hành xóa (Sequelize sẽ tự xóa các liên kết trong PropertyAppliedService do có 'onDelete: CASCADE')
+    await Service.destroy({ where: { MaDV: serviceId, MaChuTro: landlordId } });
+};
 
-    await service.destroy();
+const addPriceToService = async (serviceId, priceData, landlordId) => {
+    await getServiceAndCheckOwnership(serviceId, landlordId);
+
+    // Ràng buộc: Ngày áp dụng mới phải sau ngày áp dụng gần nhất
+    const latestPrice = await ServicePriceHistory.findOne({
+        where: { MaDV: serviceId },
+        order: [['NgayApDung', 'DESC']]
+    });
+
+    if (latestPrice && new Date(priceData.NgayApDung) <= new Date(latestPrice.NgayApDung)) {
+        throw new AppError('Ngày áp dụng mới phải sau ngày áp dụng gần nhất.', 400);
+    }
+
+    return ServicePriceHistory.create({
+        MaDV: serviceId,
+        DonGiaMoi: priceData.DonGiaMoi,
+        NgayApDung: priceData.NgayApDung,
+        MaNguoiCapNhat: landlordId,
+        ThoiGianCapNhat: new Date()
+    });
 };
 
 module.exports = {
@@ -115,5 +180,6 @@ module.exports = {
     getServiceById,
   createServiceForLandlord,
   updateServiceById,
-  deleteServiceById,
+    deleteServiceById,
+    addPriceToService
 };

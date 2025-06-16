@@ -93,6 +93,8 @@ const deleteRoomType = catchAsync(async (req, res, next) => {
   });
 });
 
+
+
 module.exports = {
   getRoomTypesByProperty,
   getRoomType,

@@ -140,10 +140,28 @@ const deleteRoomType = async (roomTypeId, maChuTro) => {
   await roomType.destroy();
 };
 
+const getRoomTypesByProperty = async (propertyId, landlordId) => {
+    // Kiểm tra xem chủ trọ có quyền sở hữu nhà trọ này không
+    const property = await Property.findOne({
+      where: { MaNhaTro: propertyId, MaChuTro: landlordId },
+    });
+  
+    if (!property) {
+      throw new AppError('Không tìm thấy nhà trọ hoặc bạn không có quyền truy cập.', 404);
+    }
+  
+    const roomTypes = await RoomType.findAll({
+      where: { MaNhaTro: propertyId },
+    });
+  
+    return roomTypes;
+  };
+
 module.exports = {
   getRoomTypesByPropertyId,
   getRoomTypeById,
   createRoomType,
   updateRoomType,
-  deleteRoomType,
+    deleteRoomType,
+    getRoomTypesByProperty
 };

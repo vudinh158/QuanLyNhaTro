@@ -15,6 +15,7 @@ import { getMyProperties } from '@/services/propertyService';
 import type { IService } from '@/types/service';
 import type { Property } from '@/types/property';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Eye } from 'lucide-react';
 
 export default function ServicesPage() {
   const [services, setServices] = useState<IService[]>([]);
@@ -155,9 +156,9 @@ export default function ServicesPage() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Đơn giá mới nhất:</span>
                       <span className="font-medium">
-                        {service.priceHistories?.[0]?.DonGiaMoi
-                          ? `${Number(service.priceHistories[0].DonGiaMoi).toLocaleString()} VNĐ`
-                          : 'Chưa có giá'}
+                      {service.priceHistories?.[0]?.DonGiaMoi
+            ? `${Number(service.priceHistories[0].DonGiaMoi).toLocaleString('vi-VN')} VNĐ`
+            : 'Chưa có giá'}
                       </span>
                     </div>
                   </div>
@@ -174,17 +175,20 @@ export default function ServicesPage() {
                                         )}
                                     </div>
                   </div>
-                </CardContent>
-
-                <div className="flex border-t">
-                  <Button variant="ghost" className="flex-1 rounded-none h-12" asChild>
-                    <Link href={`/dashboard/services/${service.MaDV}/edit`}><Pencil className="mr-2 h-4 w-4"/>Sửa</Link>
-                  </Button>
-                  <div className="w-px bg-border" />
-                  <Button variant="ghost" className="flex-1 rounded-none h-12 text-red-600 hover:text-red-700" onClick={() => { setSelectedService(service); setIsAlertOpen(true); }}>
-                    <Trash2 className="mr-2 h-4 w-4"/>Xóa
-                  </Button>
-                </div>
+                    </CardContent>
+                    <div className="flex border-t">
+                                    <Button variant="ghost" className="flex-1 rounded-none h-12" asChild>
+                                        <Link href={`/dashboard/services/${service.MaDV}`}><Eye className="mr-2 h-4 w-4"/>Chi tiết</Link>
+                                    </Button>
+                                    <div className="w-px bg-border" />
+                                    <Button variant="ghost" className="flex-1 rounded-none h-12" asChild>
+                                        <Link href={`/dashboard/services/${service.MaDV}/edit`}><Pencil className="mr-2 h-4 w-4"/>Sửa</Link>
+                                    </Button>
+                                    <div className="w-px bg-border" />
+                                    <Button variant="ghost" className="flex-1 rounded-none h-12 text-red-600 hover:text-red-700" onClick={() => { setSelectedService(service); setIsAlertOpen(true); }}>
+                                        <Trash2 className="mr-2 h-4 w-4"/>Xóa
+                                    </Button>
+                                </div>
               </Card>
             ))}
           </div>

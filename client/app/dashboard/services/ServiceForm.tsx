@@ -19,7 +19,7 @@ const formSchema = z.object({
   DonViTinh: z.string().min(1, { message: 'Đơn vị tính là bắt buộc.' }),
   LoaiDichVu: z.enum(['Cố định hàng tháng', 'Theo số lượng sử dụng', 'Sự cố/Sửa chữa'], { required_error: 'Vui lòng chọn loại dịch vụ.' }),
   DonGia: z.coerce.number().min(0, { message: 'Đơn giá phải là một số không âm.' }),
-  GhiChu: z.string().optional(),
+//   GhiChu: z.string().optional(),
 });
 
 export type ServiceFormValues = z.infer<typeof formSchema>;
@@ -45,7 +45,7 @@ export function ServiceForm({ initialData, properties, onSubmit, isSubmitting }:
       DonViTinh: initialData?.DonViTinh || '',
       LoaiDichVu: initialData?.LoaiDichVu || undefined,
       DonGia: isEditMode ? undefined : 0, // Chỉ yêu cầu giá khi tạo mới
-      GhiChu: initialData?.GhiChu || '',
+    //   GhiChu: initialData?.GhiChu || '',
     },
   });
 
@@ -122,14 +122,6 @@ export function ServiceForm({ initialData, properties, onSubmit, isSubmitting }:
             ))}
           </div>
         </div>
-        
-        <FormField control={form.control} name="GhiChu" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Ghi chú</FormLabel>
-              <FormControl><Textarea placeholder="Mô tả hoặc ghi chú thêm về dịch vụ..." {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-        )} />
 
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Đang xử lý...' : (isEditMode ? 'Lưu thay đổi' : 'Tạo mới')}

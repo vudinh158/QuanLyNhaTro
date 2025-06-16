@@ -165,6 +165,36 @@ const getAvailableRoomsForContract = async (maChuTro) => {
     });
   };
 
+  const getAllRoomsForLandlord = async (maChuTro) => {
+    // Lấy danh sách các mã nhà trọ của chủ trọ này
+    const properties = await Property.findAll({
+      where: { MaChuTro: maChuTro },
+      attributes: ['MaNhaTro']
+    });
+    const propertyIds = properties.map(p => p.MaNhaTro);
+  
+    if (propertyIds.length === 0) {
+      return []; // Nếu không có nhà trọ nào, trả về mảng rỗng
+    }
+  
+    // Tìm tất cả các phòng thuộc danh sách nhà trọ đó
+    return Room.findAll({
+      where: { MaNhaTro: { [Op.in]: propertyIds } },
+      include: [
+        { model: RoomType, as: 'roomType', attributes: ['TenLoai', 'Gia'] },
+        { model: Property, as: 'property', attributes: ['TenNhaTro'] },
+        {
+          model: Contract,
+          as: 'contracts',
+          attributes: ['MaHopDong', 'TrangThai'],
+          where: { TrangThai: 'Có hiệu lực' },
+          required: false
+        }
+      ],
+      order: [['MaNhaTro', 'ASC'], ['TenPhong', 'ASC']],
+    });
+  };
+
 module.exports = {
   getRoomsByPropertyIdForLandlord,
   getRoomDetailsByIdForLandlord,
@@ -172,5 +202,6 @@ module.exports = {
   updateRoom,
   deleteRoom,
     getAllRoomTypes,
-    getAvailableRoomsForContract
+    getAvailableRoomsForContract,
+    getAllRoomsForLandlord
 };

@@ -19,6 +19,20 @@ exports.getRoomsByProperty = catchAsync(async (req, res, next) => {
     });
 });
 
+exports.getAllRooms = catchAsync(async (req, res, next) => {
+    if (!req.user || !req.user.landlordProfile.MaChuTro) {
+        return next(new AppError('Không tìm thấy thông tin chủ trọ.', 401));
+    }
+    const maChuTro = req.user.landlordProfile.MaChuTro;
+    const rooms = await roomService.getAllRoomsForLandlord(maChuTro);
+    res.status(200).json({
+        status: 'success',
+        results: rooms.length,
+        data: { rooms },
+    });
+});
+
+
 exports.getRoomById = catchAsync(async (req, res, next) => {
     const maPhong = parseInt(req.params.id, 10);
     if (isNaN(maPhong)) {

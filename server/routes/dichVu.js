@@ -18,6 +18,9 @@ router
     dichVuController.getAllServices
   );
 
+  router.route('/:id/prices')
+    .post(protect, dichVuController.addPriceHistory);
+
 router
   .route('/:id')
   .get(
@@ -36,10 +39,5 @@ router
     dichVuController.deleteService
   );
 
-  router.patch(
-    '/:id/update-price', // Endpoint mới
-    restrictTo('service_definition:manage_own_property'), //
-    dichVuController.updateGiaDichVu // Ánh xạ tới hàm updateGiaDichVu trong controller
-  );
 
 module.exports = router;
