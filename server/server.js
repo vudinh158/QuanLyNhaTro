@@ -2,7 +2,7 @@ require("dotenv").config();
 const mysql = require("mysql2");
 const express = require("express");
 const cors = require("cors");
-const bodyParser = require("body-parser");
+// const bodyParser = require("body-parser");
 const path = require("path");
 const AppError = require("./utils/AppError");
 
@@ -48,7 +48,8 @@ const corsOptions = {
   };
   
 app.use(cors(corsOptions));
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
+app.use(express.json()); // Thay thế bodyParser để xử lý JSON
 
 // Đăng ký các route
 app.use("/api/properties", propertyRoutes);

@@ -77,7 +77,7 @@ router.post(
     }
     try {
       // Gọi service đã verify OTP từ trước
-      const user = await registerLandlord(req.body);
+      const user = await register(req.body);
       res.json({ message: "Tạo chủ trọ thành công", user });
     } catch (err) {
       next(err);
