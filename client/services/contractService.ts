@@ -16,10 +16,14 @@ export const getContractById = async (id: number): Promise<IContract> => { // Ad
 };
 
 // Tạo một hợp đồng mới
-export const createContract = async (data: IContractPayload): Promise<IContract> => {
-  const response = await api.post<ApiResponse<{ contract: IContract }>>('/contracts', data);
-  return response.data.data.contract;
-};
+export const createContract = async (data: IContractPayload | FormData): Promise<IContract> => {
+    const response = await api.post<ApiResponse<{ contract: IContract }>>('/contracts', data, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+    });
+    return response.data.data.contract;
+  };
 
 // Cập nhật một hợp đồng (bạn cần tạo route và controller cho việc này ở backend)
 export const updateContract = async (id: number, data: IContractPayload): Promise<IContract> => {

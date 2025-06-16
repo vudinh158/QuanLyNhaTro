@@ -1,141 +1,216 @@
-"use client"
+'use client';
 
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import DashboardLayout from "@/components/dashboard/dashboard-layout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useToast } from '@/components/ui/use-toast';
+import { createService } from '@/services/serviceService'; // Sửa lại service nếu cần
+import { getMyProperties } from '@/services/propertyService'; // Hàm lấy danh sách nhà trọ
+import type { Property } from '@/types/property';
+
+// Định nghĩa schema validation
+const formSchema = z.object({
+  TenDV: z.string().min(3, { message: 'Tên dịch vụ phải có ít nhất 3 ký tự.' }),
+  DonViTinh: z.string().min(1, { message: 'Đơn vị tính là bắt buộc.' }),
+  LoaiDichVu: z.enum(['Cố định', 'Sử dụng'], { required_error: 'Vui lòng chọn loại dịch vụ.' }),
+  MoTa: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 export default function NewServicePage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [serviceType, setServiceType] = useState("monthly")
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // === BẮT ĐẦU THAY ĐỔI ===
+  const [serviceScope, setServiceScope] = useState<'general' | 'specific'>('general');
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
+  // === KẾT THÚC THAY ĐỔI ===
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { TenDV: '', DonViTinh: '', MoTa: '' },
+  });
 
-    const tenDV = (document.getElementById("name") as HTMLInputElement).value
-    const donGia = Number((document.getElementById("price") as HTMLInputElement).value)
-    const loaiDichVu = serviceType
-    const donViTinh = (document.getElementById("unit") as HTMLInputElement).value || null
-
-    try {
-      const res = await fetch("http://localhost:5000/api/dich-vu", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("authToken") || ""}`,
-        },
-        body: JSON.stringify({
-          TenDV: tenDV,
-          DonGia: donGia,
-          LoaiDichVu: loaiDichVu,
-          DonViTinh: donViTinh,
-        }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.message || "Tạo dịch vụ thất bại")
+  // Lấy danh sách nhà trọ của chủ trọ khi component được tải
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const props = await getMyProperties(); // API lấy tất cả nhà trọ của chủ trọ
+        setProperties(props);
+      } catch (error) {
+        toast({ title: "Lỗi", description: "Không thể tải danh sách nhà trọ.", variant: "destructive" });
       }
+    };
+    fetchProperties();
+  }, [toast]);
 
-      toast({
-        title: "Tạo dịch vụ thành công",
-        description: "Dịch vụ mới đã được thêm vào hệ thống",
-      })
-
-      router.push("/dashboard/services")
-    } catch (error: any) {
-      toast({
-        title: "Lỗi",
-        description: error.message || "Đã xảy ra lỗi khi tạo dịch vụ",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
+  const handleSubmit = async (values: FormValues) => {
+    // === BẮT ĐẦU THAY ĐỔI LOGIC ===
+    if (serviceScope === 'specific' && !selectedProperty) {
+      toast({ title: "Lỗi", description: "Vui lòng chọn một nhà trọ cho dịch vụ riêng.", variant: "destructive" });
+      return;
     }
-  }
+
+    const serviceData = {
+      ...values,
+      MaNhaTro: serviceScope === 'specific' ? Number(selectedProperty) : null,
+    };
+    // === KẾT THÚC THAY ĐỔI LOGIC ===
+
+    setIsSubmitting(true);
+    try {
+      await createService(serviceData);
+      toast({
+        title: 'Thành công',
+        description: 'Đã tạo dịch vụ mới.',
+      });
+      router.push('/dashboard/services');
+      router.refresh();
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Không thể tạo dịch vụ. Vui lòng thử lại.';
+      toast({
+        title: 'Lỗi',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    // 
-      <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-bold tracking-tight mb-6">Thêm dịch vụ mới</h1>
+    <Card>
+      <CardHeader>
+        <CardTitle>Tạo mới Dịch vụ</CardTitle>
+        <CardDescription>Điền thông tin để tạo một dịch vụ mới cho nhà trọ của bạn.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            
+            {/* === BẮT ĐẦU THAY ĐỔI GIAO DIỆN === */}
+            <FormItem className="space-y-3">
+              <FormLabel>Phạm vi áp dụng *</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={(value) => setServiceScope(value as 'general' | 'specific')}
+                  defaultValue={serviceScope}
+                  className="flex flex-col space-y-1"
+                >
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl><RadioGroupItem value="general" /></FormControl>
+                    <FormLabel className="font-normal">Dịch vụ chung (Dùng cho nhiều nhà trọ)</FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl><RadioGroupItem value="specific" /></FormControl>
+                    <FormLabel className="font-normal">Dịch vụ riêng (Chỉ cho một nhà trọ)</FormLabel>
+                  </FormItem>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
 
-        <form onSubmit={handleSubmit}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Thông tin dịch vụ</CardTitle>
-              <CardDescription>Nhập thông tin chi tiết về dịch vụ mới</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">
-                  Tên dịch vụ <span className="text-red-500">*</span>
-                </Label>
-                <Input id="name" placeholder="Nhập tên dịch vụ" required />
-              </div>
+            {serviceScope === 'specific' && (
+              <FormField
+                name="MaNhaTro" // Tên này chỉ để liên kết logic, không có trong form schema
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Chọn nhà trọ *</FormLabel>
+                    <Select onValueChange={setSelectedProperty} defaultValue={selectedProperty || undefined}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn một nhà trọ để áp dụng dịch vụ riêng..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {properties.map(prop => (
+                          <SelectItem key={prop.MaNhaTro} value={String(prop.MaNhaTro)}>
+                            {prop.TenNhaTro}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {/* === KẾT THÚC THAY ĐỔI GIAO DIỆN === */}
 
-              <div className="space-y-2">
-                <Label htmlFor="price">
-                  Giá dịch vụ (VNĐ) <span className="text-red-500">*</span>
-                </Label>
-                <Input id="price" type="number" placeholder="Nhập giá dịch vụ" min="0" required />
-              </div>
+            <FormField
+              control={form.control}
+              name="TenDV"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tên dịch vụ *</FormLabel>
+                  <FormControl><Input placeholder="Ví dụ: Internet FPT 100Mbps" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <div className="space-y-2">
-                <Label htmlFor="type">
-                  Loại tính phí <span className="text-red-500">*</span>
-                </Label>
-                <Select value={serviceType} onValueChange={setServiceType} required>
-                  <SelectTrigger id="type">
-                    <SelectValue placeholder="Chọn loại tính phí" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Hàng tháng</SelectItem>
-                    <SelectItem value="usage">Theo sử dụng</SelectItem>
-                    <SelectItem value="one-time">Một lần</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="DonViTinh"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Đơn vị tính *</FormLabel>
+                    <FormControl><Input placeholder="Ví dụ: Tháng, Kg, Bình" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="LoaiDichVu"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Loại dịch vụ *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Chọn loại hình dịch vụ" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Cố định">Cố định (Thu theo tháng)</SelectItem>
+                        <SelectItem value="Sử dụng">Theo mức sử dụng</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="unit">Đơn vị tính</Label>
-                <Input
-                  id="unit"
-                  placeholder={
-                    serviceType === "monthly"
-                      ? "Ví dụ: tháng"
-                      : serviceType === "usage"
-                      ? "Ví dụ: kg, lần, giờ"
-                      : "Ví dụ: lần"
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Mô tả</Label>
-                <Textarea id="description" placeholder="Nhập mô tả về dịch vụ (nếu có)" />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button type="button" variant="outline" onClick={() => router.push("/dashboard/services")}>
-                Hủy
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Đang xử lý..." : "Thêm dịch vụ"}
-              </Button>
-            </CardFooter>
-          </Card>
-        </form>
-      </div>
-    // </DashboardLayout>
-  )
+            <FormField
+              control={form.control}
+              name="MoTa"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mô tả</FormLabel>
+                  <FormControl><Textarea placeholder="Mô tả chi tiết về dịch vụ..." {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Đang xử lý...' : 'Tạo mới'}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
 }

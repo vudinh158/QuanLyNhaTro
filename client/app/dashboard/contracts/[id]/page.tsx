@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { User, Home, FileText, Calendar, CircleDollarSign, CheckCircle, Tag, Users, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Download } from 'lucide-react';
 
 const DetailItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: React.ReactNode }) => (
     <div className="flex items-start space-x-4 py-2">
@@ -63,6 +64,22 @@ export default function ContractDetailPage() {
                             <DetailItem icon={<CircleDollarSign size={20} />} label="Tiền thuê" value={`${contract.TienThueThoaThuan.toLocaleString()} VNĐ`} />
                             <DetailItem icon={<CircleDollarSign size={20} />} label="Tiền cọc" value={`${contract.TienCoc.toLocaleString()} VNĐ`} />
                             <DetailItem icon={<CheckCircle size={20} />} label="Kỳ thanh toán" value={contract.KyThanhToan} />
+                            {contract.FileHopDong && (
+    <div className="space-y-2">
+      <h4 className="text-sm font-medium text-muted-foreground">Tệp đính kèm</h4>
+      <Button variant="outline" asChild>
+        <a 
+          href={`http://localhost:5000/uploads/${contract.FileHopDong}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Tải xuống hợp đồng
+        </a>
+      </Button>
+    </div>
+  )}
                         </CardContent>
                     </Card>
                     <Card>

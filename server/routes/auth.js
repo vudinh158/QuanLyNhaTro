@@ -20,22 +20,10 @@ const { protect } = require("../middlewares/authMiddleware");
  * - Chỉ nhận email hợp lệ
  */
 router.post(
-  "/send-otp",
-  body("email").isEmail().withMessage("Email không hợp lệ"),
-  async (req, res, next) => {
-    // Kiểm tra validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    try {
-      const result = await sendOtp(req.body.email);
-      res.json(result);
-    } catch (err) {
-      next(err);
-    }
-  }
-);
+    "/send-otp",
+    body("email").isEmail().withMessage("Email không hợp lệ"),
+    authController.sendOtp // Trỏ thẳng đến controller
+  );
 
 /**
  * 2) Xác thực OTP
@@ -43,28 +31,13 @@ router.post(
  * - Code phải là 6 chữ số
  */
 router.post(
-  "/verify-otp",
-  [
-    body("email").isEmail().withMessage("Email không hợp lệ"),
-    body("code")
-      .isLength({ min: 6, max: 6 })
-      .withMessage("OTP phải gồm 6 chữ số")
-      .isNumeric()
-      .withMessage("OTP chỉ chứa số"),
-  ],
-  async (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    try {
-      const result = await verifyOtp(req.body.email, req.body.code);
-      res.json(result);
-    } catch (err) {
-      next(err);
-    }
-  }
-);
+    "/verify-otp",
+    [
+      body("otp").notEmpty().withMessage("OTP không được để trống"),
+      body("otpToken").notEmpty().withMessage("OTP token không được để trống"),
+    ],
+    authController.verifyOtp
+  );
 
 /**
  * 3) Đăng ký Chủ Trọ (sau khi OTP đã xác thực)

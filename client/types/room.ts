@@ -1,6 +1,6 @@
 // apps/client-nextjs/types/room.ts
-import type { Property } from './property'; // Import Property nếu cần lồng thông tin
-
+import type { Property } from './property';
+import type { IContract } from './contract';
 export interface RoomType {
   MaLoaiPhong: number;
   TenLoai: string;
@@ -19,7 +19,7 @@ export interface Room {
   GhiChu?: string | null;
   roomType?: Partial<RoomType>; 
   property?: Partial<Property>; 
-  // contracts?: any[]; // Thông tin hợp đồng 
+  contracts?: IContract[];
 }
 
 export interface NewRoomData {

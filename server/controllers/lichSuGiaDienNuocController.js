@@ -1,6 +1,8 @@
 const { ElectricWaterPriceHistory, Property, Landlord } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
+const electricWaterPriceService = require('../services/electricWaterPriceService');
+const catchAsync = require('../utils/catchAsync');
 
 exports.createLichSuGiaDienNuoc = async (req, res, next) => {
   try {
@@ -22,7 +24,7 @@ exports.createLichSuGiaDienNuoc = async (req, res, next) => {
       Loai,
       DonGiaMoi,
       NgayApDung,
-      MaNguoiCapNhat: req.user.MaChuTro,
+      MaNguoiCapNhat: req.user.landlordProfile.MaChuTro,
       ThoiGianCapNhat: new Date(),
     });
 
@@ -64,14 +66,17 @@ exports.getAllLichSuGiaDienNuoc = async (req, res, next) => {
     }
 
     const records = await ElectricWaterPriceHistory.findAll({
-      where,
-      include: [
-        // SỬA LỖI 2: Dùng đúng alias 'property' trong include
-        { model: Property, as: 'property' }, 
-        { model: Landlord, as: 'updatedBy' } // Alias 'updatedBy' phải khớp với model
-      ],
-      order: [['NgayApDung', 'DESC']]
-    });
+        where,
+        include: [
+          { 
+            model: Property, 
+            as: 'property', 
+            attributes: [] // Chỉ dùng để join và lọc, không cần lấy dữ liệu
+          },
+        ],
+        order: [['NgayApDung', 'DESC']], // Sắp xếp ngày áp dụng mới nhất lên đầu
+        // Bỏ GROUP BY để lấy tất cả lịch sử, không chỉ bản ghi mới nhất
+      });
 
     // SỬA LỖI 3: Trả về dữ liệu đúng cấu trúc client mong đợi
     res.status(200).json({ 
@@ -86,3 +91,15 @@ exports.getAllLichSuGiaDienNuoc = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.deleteElectricWaterPrice = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const maChuTro = req.user.landlordProfile.MaChuTro;
+
+    await electricWaterPriceService.deleteElectricWaterPriceById(id, maChuTro);
+
+    res.status(204).json({
+        status: 'success',
+        data: null,
+    });
+});

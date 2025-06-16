@@ -3,15 +3,10 @@ import { Room } from './room';
 import { Property } from './property';
 import { Tenant } from './tenant';
 import { IService } from './service';
+import { IOccupant } from './occupant';
 
 // Dữ liệu Người ở cùng trả về từ API
-export interface IOccupant {
-  MaNguoiOCung: number;
-  MaHopDong: number;
-  MaKhachThue: number;
-  LaNguoiDaiDien: boolean;
-  tenant: Tenant; // Lồng thông tin Khách thuê
-}
+
 
 // Dữ liệu Hợp đồng chi tiết trả về từ API
 export interface IContract {

@@ -1,4 +1,11 @@
-const { Property, Landlord, Room } = require('../models');
+const {
+    Property,
+    Room,
+    RoomType,
+    Contract,
+    Occupant,
+    Tenant,
+  } = require("../models");
 const AppError = require('../utils/AppError');
 
 /**
@@ -24,25 +31,46 @@ const getPropertiesByLandlordId = async (maChuTro) => {
  * @param {number} maChuTro 
  * @returns {Promise<Property|null>}
  */
-const getPropertyByIdAndLandlord = async (propertyId, maChuTro) => {
-    const property = await Property.findOne({
-      where: {
-        MaNhaTro: propertyId,
-        MaChuTro: maChuTro,
-      },
-      include: [
-        { 
-          model: Room, 
-          as: 'rooms', 
-          attributes: ['MaPhong', 'MaLoaiPhong', 'TenPhong', 'TrangThai', 'GhiChu'], // Lấy các thuộc tính cần thiết của phòng
-          // Bạn có thể include thêm RoomType nếu muốn hiển thị tên loại phòng và giá ngay tại đây
-          // include: [{ model: models.RoomType, as: 'roomType', attributes: ['TenLoai', 'Gia'] }]
-        }
-      ],
-      order: [
-        [{ model: Room, as: 'rooms' }, 'TenPhong', 'ASC'] // Sắp xếp phòng theo tên
-      ]
-    });
+const getPropertyByIdAndLandlord = async (propertyId, landlordId) => {
+    const property = await Property.findByPk(propertyId, {
+        where: { MaChuTro: landlordId },
+        include: [
+          {
+            model: Room,
+            as: "rooms",
+            include: [
+              {
+                model: RoomType,
+                as: "roomType", // Lấy thông tin loại phòng (đã có)
+              },
+              {
+                model: Contract,
+                as: "contracts",
+                // Chỉ lấy hợp đồng đang 'Có hiệu lực'
+                where: { TrangThai: "Có hiệu lực" },
+                required: false, // Sử dụng LEFT JOIN để phòng chưa có hợp đồng vẫn hiển thị
+                include: [
+                  {
+                    model: Occupant,
+                    as: "occupants",
+                    include: [
+                      {
+                        model: Tenant,
+                        as: "tenant",
+                        attributes: ["HoTen"], // Chỉ cần lấy họ tên của người thuê
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        order: [
+            // Sắp xếp các phòng theo tên
+            [{ model: Room, as: 'rooms' }, 'TenPhong', 'ASC']
+        ]
+      });
     if (!property) {
       throw new AppError('Không tìm thấy nhà trọ hoặc bạn không có quyền truy cập.', 404);
     }

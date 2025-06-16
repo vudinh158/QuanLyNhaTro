@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import Image from 'next/image';
 
 export default function TenantDetailsPage() {
   const params = useParams();
@@ -143,8 +144,8 @@ export default function TenantDetailsPage() {
       <Card>
         <CardHeader className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:items-start gap-4">
           <Avatar className="h-24 w-24 border">
-            {/* <AvatarImage src={tenant.AnhGiayTo || undefined} alt={tenant.HoTen} /> */}
-            <AvatarFallback>{getAvatarFallback(tenant.HoTen)}</AvatarFallback>
+          <AvatarImage src={tenant.AnhGiayTo ? `http://localhost:5000/uploads/${tenant.AnhGiayTo}` : undefined} alt={tenant.HoTen} />
+          <AvatarFallback>{getAvatarFallback(tenant.HoTen)}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <CardTitle className="text-2xl">{tenant.HoTen}</CardTitle>
@@ -179,7 +180,24 @@ export default function TenantDetailsPage() {
             {renderDetailItem("Quê quán", tenant.QueQuan)}
             {renderDetailItem("Tên đăng nhập", tenant.userAccount?.TenDangNhap)}
              {renderDetailItem("Trạng thái tài khoản", tenant.userAccount?.TrangThai)}
-          </div>
+                  </div>
+                  {tenant.AnhGiayTo && (
+        <>
+            <Separator className="my-4" />
+            <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">Ảnh giấy tờ:</h4>
+                <Link href={`http://localhost:5000/uploads/${tenant.AnhGiayTo}`} target="_blank" rel="noopener noreferrer">
+                    <Image
+                        src={`http://localhost:5000/uploads/${tenant.AnhGiayTo}`}
+                        alt={`Giấy tờ của ${tenant.HoTen}`}
+                        width={200}
+                        height={120}
+                        className="rounded-lg border object-cover hover:opacity-80 transition-opacity"
+                    />
+                </Link>
+            </div>
+        </>
+    )}
           {tenant.GhiChu && (
             <>
               <Separator className="my-4" />

@@ -10,7 +10,6 @@ module.exports = (sequelize, DataTypes) => {
     TenLoai: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      unique: true,
     },
     Gia: {
       type: DataTypes.DECIMAL(12, 2),

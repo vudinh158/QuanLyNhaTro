@@ -10,12 +10,12 @@ router
   .post(
     // protect,
     restrictTo('service_definition:manage_own_property'),
-    dichVuController.createDichVu
+    dichVuController.createService
   )
   .get(
     // protect,
     restrictTo('service_definition:manage_own_property'),
-    dichVuController.getAllDichVu
+    dichVuController.getAllServices
   );
 
 router
@@ -28,12 +28,12 @@ router
   .patch(
     // protect,
     restrictTo('service_definition:manage_own_property'),
-    dichVuController.updateDichVu
+    dichVuController.updateService
   )
   .delete(
     // protect,
     restrictTo('service_definition:manage_own_property'),
-    dichVuController.deleteDichVu
+    dichVuController.deleteService
   );
 
   router.patch(

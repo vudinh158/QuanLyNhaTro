@@ -2,6 +2,7 @@ const authService = require('../services/authService');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const { UserAccount, Role, Permission, Landlord, Tenant } = require('../models');
+const { validationResult } = require('express-validator');
 
 // Hàm này đã đúng, giữ nguyên
 const formatUserResponse = (userObject) => {
@@ -68,25 +69,45 @@ exports.getMe = catchAsync(async (req, res, next) => {
 });
 
 exports.sendOtp = catchAsync(async (req, res, next) => {
+    // 1. Kiểm tra kết quả validation từ middleware
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    // 2. Nếu không có lỗi, tiếp tục logic
     const { email } = req.body;
-    // authService.sendOtp giờ trả về token
     const { otpToken } = await authService.sendOtp(email);
 
     res.status(200).json({
         status: 'success',
         message: 'Mã OTP đã được gửi về email của bạn.',
-        otpToken, // Gửi token này về cho client
+        otpToken,
     });
 });
 
 exports.verifyOtp = catchAsync(async (req, res, next) => {
-    // Client phải gửi lên cả `code` và `otpToken`
-    const { code, otpToken } = req.body;
-    
-    const result = await authService.verifyOtp(code, otpToken);
+    // 1. Thêm đoạn kiểm tra kết quả validation
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    // 2. Logic chính giữ nguyên
+    const { otp, otpToken } = req.body;
+    const user = await authService.verifyOtp(otp, otpToken);
+
+    // Nếu OTP hợp lệ, đăng nhập cho user và tạo token
+    const token = signToken(user.id);
 
     res.status(200).json({
         status: 'success',
-        message: result.message,
+        message: 'Xác thực OTP thành công.',
+        token,
+        user: {
+            id: user.id,
+            email: user.email,
+            role: user.role, // Giả sử user có trường role
+        },
     });
 });

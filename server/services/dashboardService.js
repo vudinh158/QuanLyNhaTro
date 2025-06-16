@@ -51,7 +51,7 @@ exports.getLandlordDashboardSummary = async (maChuTro) => {
                     as: 'tenant',
                     attributes: [],
                     required: true,
-                    where: { TrangThai: 'Hoạt động' }
+                    where: { TrangThai: 'Đang thuê' }
                 },
                 {
                     model: Contract,

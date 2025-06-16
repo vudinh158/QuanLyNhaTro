@@ -1,10 +1,14 @@
 export interface IElectricWaterPrice {
     MaLichSuGiaDienNuoc: number;
     MaNhaTro: number;
-    LoaiChiPhi: 'Điện' | 'Nước'; // Or 'Tiền điện' | 'Tiền nước' based on backend enum
+    Loai: 'Điện' | 'Nước'; // Or 'Tiền điện' | 'Tiền nước' based on backend enum
     DonGiaMoi: number;
     NgayApDung: string;
-    GhiChu?: string | null;
 }
 
-// file: client/services/electricWaterPriceService.ts
+export interface NewElectricWaterPriceData {
+    MaNhaTro: number;
+    Loai: 'Điện' | 'Nước';
+    DonGiaMoi: number;
+    NgayApDung: Date;
+  }

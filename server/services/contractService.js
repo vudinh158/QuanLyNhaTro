@@ -97,7 +97,7 @@ const getContractById = async (maHopDong, user) => {
 };
 
 /** Tạo hợp đồng mới */
-const createContract = async (contractData, maChuTro) => {
+const createContract = async (contractData, maChuTro, tenantFiles = [], contractFile = null) => {
     const {
       MaPhong, NgayLap, NgayBatDau, NgayKetThuc, TienCoc, TienThueThoaThuan,
       KyThanhToan, HanThanhToan, GhiChu,
@@ -147,18 +147,22 @@ const createContract = async (contractData, maChuTro) => {
             KyThanhToan,
             HanThanhToan,
             TrangThai: contractStatus, // Gán trạng thái tự động
+            FileHopDong: contractFile ? contractFile.filename : null, // Lưu tên file hợp đồng nếu có
             GhiChu,
         }, { transaction });
   
       // --- Xử lý Người ở (Occupants) ---
-      const occupantDataToCreate = [];
+        const occupantDataToCreate = [];
+        let fileIndex = 0;
       for (const occ of occupants) {
         let tenantId;
         if (occ.isNew) {
-          // Nếu là khách thuê mới, tạo họ trước
-          // Hàm createTenant từ tenantService đã có transaction riêng, nhưng để đảm bảo nguyên tử,
-          // chúng ta nên truyền transaction hiện tại vào. Cần sửa lại tenantService.createTenant để nhận transaction.
-          // Giả sử tenantService.createTenant đã được sửa để nhận transaction.
+            const tenantFile = tenantFiles[fileIndex];
+            if (tenantFile) {
+              // Lấy tên file để lưu vào DB
+              occ.AnhGiayTo = tenantFile.filename; 
+              fileIndex++;
+            }
           const newTenant = await createTenant(occ, maChuTro, transaction); // Truyền transaction vào
           tenantId = newTenant.MaKhachThue;
         } else {
