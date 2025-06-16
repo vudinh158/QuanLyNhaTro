@@ -21,8 +21,9 @@ import type { Property } from '@/types/property';
 const formSchema = z.object({
   TenDV: z.string().min(3, { message: 'Tên dịch vụ phải có ít nhất 3 ký tự.' }),
   DonViTinh: z.string().min(1, { message: 'Đơn vị tính là bắt buộc.' }),
-  LoaiDichVu: z.enum(['Cố định', 'Sử dụng'], { required_error: 'Vui lòng chọn loại dịch vụ.' }),
-  MoTa: z.string().optional(),
+  LoaiDichVu: z.enum(['Cố định hàng tháng', 'Theo số lượng sử dụng', 'Sự cố/Sửa chữa'], { required_error: 'Vui lòng chọn loại dịch vụ.' }),
+  DonGia: z.coerce.number().min(0, { message: 'Đơn giá phải là một số không âm.' }),
+    MoTa: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -40,7 +41,7 @@ export default function NewServicePage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { TenDV: '', DonViTinh: '', MoTa: '' },
+    defaultValues: { TenDV: '', DonViTinh: '', MoTa: '', DonGia: 0 },
   });
 
   // Lấy danh sách nhà trọ của chủ trọ khi component được tải
@@ -184,8 +185,9 @@ export default function NewServicePage() {
                         <SelectTrigger><SelectValue placeholder="Chọn loại hình dịch vụ" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Cố định">Cố định (Thu theo tháng)</SelectItem>
-                        <SelectItem value="Sử dụng">Theo mức sử dụng</SelectItem>
+                        <SelectItem value="Cố định hàng tháng">Cố định (Thu theo tháng)</SelectItem>
+                        <SelectItem value="Theo số lượng sử dụng">Theo mức sử dụng</SelectItem>
+                        <SelectItem value="Sự cố/Sửa chữa">Sự cố / Sửa chữa</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -193,7 +195,18 @@ export default function NewServicePage() {
                 )}
               />
             </div>
-
+            <FormField
+              control={form.control}
+              name="DonGia"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Đơn giá ban đầu (VNĐ) *</FormLabel>
+                  <FormControl><Input type="number" placeholder="Ví dụ: 100000" {...field} /></FormControl>
+                  <CardDescription>Giá này sẽ được áp dụng ngay lập tức cho dịch vụ mới.</CardDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="MoTa"
