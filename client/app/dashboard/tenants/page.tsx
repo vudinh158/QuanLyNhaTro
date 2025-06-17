@@ -177,7 +177,7 @@ export default function TenantsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[80px]">Avatar</TableHead>
+                {/* <TableHead className="w-[80px]">Avatar</TableHead> */}
                 <TableHead>Họ Tên</TableHead>
                 <TableHead>Liên hệ</TableHead>
                 <TableHead>Phòng đang ở</TableHead>
@@ -188,12 +188,12 @@ export default function TenantsPage() {
             <TableBody>
               {tenants.map((tenant) => (
                 <TableRow key={tenant.MaKhachThue}>
-                  <TableCell>
+                  {/* <TableCell>
                     <Avatar>
-                      {/* <AvatarImage src={tenant.avatarUrl || undefined} alt={tenant.HoTen} /> */}
+                      <AvatarImage src={tenant.avatarUrl || undefined} alt={tenant.HoTen} />
                       <AvatarFallback>{getAvatarFallback(tenant.HoTen)}</AvatarFallback>
                     </Avatar>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell className="font-medium">{tenant.HoTen}</TableCell>
                   <TableCell>
                     <div>{tenant.SoDienThoai}</div>
@@ -214,13 +214,13 @@ export default function TenantsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                    <Button variant="ghost" size="icon" asChild title="Tạo hợp đồng"
+                    {/* <Button variant="ghost" size="icon" asChild title="Tạo hợp đồng"
                         disabled={tenant.TrangThai === 'Đã rời đi'} // Không cho tạo HĐ nếu đã rời đi
                     >
                       <Link href={`/dashboard/contracts/new?tenantId=${tenant.MaKhachThue}`}>
                         <FilePlus2 className="h-4 w-4" />
                       </Link>
-                    </Button>
+                    </Button> */}
                     <Button variant="ghost" size="icon" asChild title="Chi tiết">
                       <Link href={`/dashboard/tenants/${tenant.MaKhachThue}`}>
                         <Eye className="h-4 w-4" />
